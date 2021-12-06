@@ -24,5 +24,3 @@ On switches only:
 - IPv4/IPv6 Routing
 - Port Security
 - Load-balancing Configuration
-
-# 

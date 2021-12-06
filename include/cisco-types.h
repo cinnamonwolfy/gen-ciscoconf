@@ -1,3 +1,4 @@
 #include <pl32-memory.h>
 
-typedef 
+typedef struct ciscoint ciscoint_t;
+typedef struct ciscotable ciscotable_t;
