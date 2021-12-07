@@ -1,5 +1,5 @@
 /************************************\
-* gen-ciscoconf, v0.55               *
+* gen-ciscoconf, v0.55.3             *
 * (c)2021 pocketlinux32, Under GPLv3 *
 * Source file                        *
 \************************************/
@@ -196,7 +196,7 @@ int main(int argc, const char* argv[]){
 				config.filename = argv[i + 1];
 				i++;
 			}else if(strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
-				printf("Cisco Config Generator, Version 0.55\n");
+				printf("Cisco Config Generator, Version 0.55.3\n");
 				printf("(c)2021 pocketlinux32, Under GPLv3\n\n");
 				printf("Usage: %s [ --help | -o OUTPUT_FILE | -p | -v | -s ] SOURCE_FILE \n\n", argv[0]);
 				printf("-h		Shows this help\n");
@@ -276,7 +276,7 @@ int main(int argc, const char* argv[]){
 	struct tm timeStruct = *localtime(&timePtr);
 
 	if(!snippet)
-		fprintf(containerFileStream, "enable\nclock set %d:%d:%d %d %s %d\nconfig t", timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, timeStruct.tm_mday, month[timeStruct.tm_mon], timeStruct.tm_year + 1900);
+		fprintf(containerFileStream, "enable\nclock set %d:%d:%d %d %s %d\nconfig t\n", timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, timeStruct.tm_mday, month[timeStruct.tm_mon], timeStruct.tm_year + 1900);
 
 	if(config.hostname)
 		fprintf(containerFileStream, "hostname %s\n", config.hostname);
@@ -324,12 +324,13 @@ int main(int argc, const char* argv[]){
 					tempMode = config.etherchannel.interfaces[i].mode;
 				}
 
-				fprintf(containerFileStream, "int range %s\nchannel-group %s mode %s\n", config.etherchannel.interfaces[i].ports, config.etherchannel.ids[i], tempMode);
+				fprintf(containerFileStream, "int range %s\nchannel-group %s mode %s\nexit\n", config.etherchannel.interfaces[i].ports, config.etherchannel.ids[i], tempMode);
 			}
 		}
 	}
 
-	fprintf(containerFileStream, "exit\n");
+	if(!snippet)
+		fprintf(containerFileStream, "exit\n");
 
 	fclose(containerFileStream);
 
