@@ -1,5 +1,5 @@
 /************************************\
-* gen-ciscoconf, v0.54               *
+* gen-ciscoconf, v0.55               *
 * (c)2021 pocketlinux32, Under GPLv3 *
 * Source file                        *
 \************************************/
@@ -15,125 +15,6 @@
 #include <ctime>
 #endif
 
-// pl32lib wrapper for FILE*
-typedef struct plfile {
-	FILE* fileptr; // File pointer for actual files
-	char* strbuf; // String pointer for stringstream
-	char* mode; // File open mode
-	size_t seekbyte; // Byte offset from the beginning of buffer
-	size_t bufsize; // Buffer size
-} plfile_t;
-
-plfile_t* plFOpen(char* filename, char* mode){
-	plfile_t* returnStruct = NULL;
-
-	if(mode){
-		returnStruct = malloc(sizeof(plfile_t));
-		if(!filename){
-			returnStruct->fileptr = NULL;
-		}else{
-			returnStruct->fileptr = fopen(filename, mode);
-		}
-
-		returnStruct->strbuf = NULL;
-		returnStruct->mode = malloc((strlen(mode)+1) * sizeof(char));
-		strcpy(returnStruct->mode, mode);
-		returnStruct->bufsize = 0;
-	}
-
-	return returnStruct;
-}
-
-int plFClose(plfile_t* ptr){
-	if(!fileptr){
-		free(ptr->strbuf);
-	}else{
-		fclose(ptr->fileptr);
-	}
-
-	free(ptr->mode);
-	free(ptr);
-}
-
-size_t plFRead(const void* ptr, size_t size, size_t nmemb, plfile_t* stream){
-	if(!stream->fileptr){
-		int elementAmnt = 0;
-		while(size * elementAmnt > stream->bufsize - stream->seekbyte){
-			elementAmnt++;
-		}
-		elementAmnt--;
-
-		if(!elementAmnt){
-			return 0;
-		}
-
-		memcpy(ptr, stream->strbuf + seekbyte, size * elementAmnt);
-		stream->seekbyte += size * elementAmnt;
-	}else{
-		return fread(ptr, size, nmemb, stream->fileptr);
-	}
-}
-
-size_t plFWrite(const void* ptr, size_t size, size_t nmemb, plfile_t* stream){
-	if(!stream->fileptr){
-		if(size * nmemb > stream->bufsize - stream->seekbyte){
-			void* tempPtr = realloc(stream->strbuf, stream->bufsize + size * nmemb);
-			if(!tempPtr){
-				return 0;
-			}
-
-			stream->strbuf = tempPtr;
-		}
-
-		memcpy(ptr, stream->strbuf + seekbyte, size * nmemb);
-		stream->seekbyte += size * elementAmnt;
-	}else{
-		return fwrite(ptr, size, nmemb, stream->fileptr);
-	}
-}
-
-char plFPutC(char ch, plfile_t* stream){
-	if(!plFWrite(&ch, sizeof(char), 1, stream)){
-		return '\0';
-	}else{
-		return ch;
-	}
-}
-
-char plFGetC(plfile_t* stream){
-	char ch;
-	if(!plFRead(&ch, sizeof(char), 1, stream)){
-		return '\0';
-	}else{
-		return ch;
-	}
-}
-
-int plFPuts(char* string, plfile_t* stream){
-	if(!plFWrite(string, strlen(string)+1, 1, stream)){
-		return 0;
-	}else{
-		return 1;
-	}
-}
-
-int plFGets(char* string, int num, plfile_t* stream){
-	if(!plFRead(string, num, 1, stream)){
-		return 0;
-	}else{
-		return 1;
-	}
-}
-
-int plFPrintF(plfile_t* stream, const char* fmt, ...){
-	va_list args;
-	va_start(args, fmt);
-
-	char buffer[4096]
-
-	vsprintf(buffer, fmt, args);
-}
-
 // Cisco interface struct
 typedef struct ciscoint {
 	char* ports;			// String containing the ports/interfaces
@@ -148,7 +29,7 @@ typedef struct ciscoint {
 typedef struct ciscovlantable {
 	char** ids;			// ID array
 	char** names;			// Name array
-	ciscoint_t* interfaces		// Interface array
+	ciscoint_t* interfaces;		// Interface array
 	size_t size;			// Size of Vlan Database
 } ciscovlantable_t;
 
@@ -168,7 +49,7 @@ ciscovlantable_t createVlanTableStruct(){
 	ciscovlantable_t returnStruct;
 	returnStruct.ids = NULL;
 	returnStruct.names = NULL;
-	returnStruct.ports = NULL;
+	returnStruct.interfaces = NULL;
 	returnStruct.size = 0;
 
 	return returnStruct;
@@ -203,8 +84,8 @@ void printVlanTableStruct(ciscovlantable_t* structptr){
 	for(int i = 0; i < structptr->size; i++){
 		printf("Vlan %s:\n", structptr->ids[i]);
 		printf("	Name: %s\n", structptr->names[i]);
-		printf("	Port(s): %s\n", structptr->ports[i]);
-		printf("	Mode: %s\n", structptr->mode[i]);
+		printf("	Port(s): %s\n", structptr->interfaces[i].ports);
+		printf("	Mode: %s\n", structptr->interfaces[i].mode);
 	}
 }
 
@@ -242,11 +123,10 @@ int configParser(char* args[]){
 		if(reference->size < 2){
 			reference->ids = malloc(2 * sizeof(char*));
 			reference->names = malloc(2 * sizeof(char*));
-			reference->ports = malloc(2 * sizeof(char*));
-			reference->mode = malloc(2 * sizeof(char*));
+			reference->interfaces = malloc(2 * sizeof(ciscoint_t));
 		}else{
-			size_t reallocSize = reference->size * sizeof(char*);
-			void* tempPtr[4] = { realloc(reference->ids, reallocSize), realloc(reference->names, reallocSize), realloc(reference->ports, reallocSize), realloc(reference->mode, reallocSize) };
+			size_t reallocSize[2] = { reference->size * sizeof(char*), reference->size * sizeof(ciscoint_t) };
+			void* tempPtr[3] = { realloc(reference->ids, reallocSize[0]), realloc(reference->names, reallocSize[0]), realloc(reference->interfaces, reallocSize[1]) };
 
 			for(int i = 0; i < 4; i++){
 				if(!tempPtr[i]){
@@ -257,19 +137,18 @@ int configParser(char* args[]){
 
 			reference->ids = tempPtr[0];
 			reference->names = tempPtr[1];
-			reference->ports = tempPtr[2];
-			reference->mode = tempPtr[3];
+			reference->interfaces = tempPtr[2];
 		}
 
 		reference->ids[reference->size - 1] = args[1];
 		if(strcmp(args[0], "vlan") == 0){
 			reference->names[reference->size - 1] = args[2];
-			reference->ports[reference->size - 1] = args[3];
-			reference->mode[reference->size - 1] = args[4];
+			reference->interfaces[reference->size - 1].ports = args[3];
+			reference->interfaces[reference->size - 1].mode = args[4];
 		}else{
 			reference->names[reference->size - 1] = args[4];
-			reference->ports[reference->size - 1] = args[2];
-			reference->mode[reference->size - 1] = args[3];
+			reference->interfaces[reference->size - 1].ports = args[2];
+			reference->interfaces[reference->size - 1].mode = args[3];
 		}
 	}else{
 		printf("Unknown command\n");
@@ -304,7 +183,7 @@ int main(int argc, const char* argv[]){
 	FILE* containerFileStream;
 	FILE* sourceFileStream;
 	char* containerFilename = NULL;
-	bool parseOnly = false, verbose = false;
+	bool parseOnly = false, verbose = false, snippet = false;
 	char* month[] = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
 
 	config = createConfigStruct();
@@ -317,18 +196,21 @@ int main(int argc, const char* argv[]){
 				config.filename = argv[i + 1];
 				i++;
 			}else if(strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
-				printf("Cisco Config Generator, Version 0.54\n");
+				printf("Cisco Config Generator, Version 0.55\n");
 				printf("(c)2021 pocketlinux32, Under GPLv3\n\n");
-				printf("Usage: %s [ --help | -o OUTPUT_FILE | -p | -v ] SOURCE_FILE \n\n", argv[0]);
+				printf("Usage: %s [ --help | -o OUTPUT_FILE | -p | -v | -s ] SOURCE_FILE \n\n", argv[0]);
 				printf("-h		Shows this help\n");
 				printf("-o		Outputs generated config to OUTPUT_FILE\n");
 				printf("-v		Shows parsed config\n");
-				printf("-p		Only parses the source file/commands, doesn't output config file. Requires -v\n\n");
+				printf("-p		Only parses the source file/commands, doesn't output config file. Requires -v\n");
+				printf("-s		Doesn't generate 'enable, config t' at the beginning of file\n\n");
 				return 0;
 			}else if(strcmp(argv[i], "-v") == 0){
 				verbose = true;
 			}else if(strcmp(argv[i], "-p") == 0){
 				parseOnly = true;
+			}else if(strcmp(argv[i], "-s") == 0){
+				snippet = true;
 			}else if(containerFilename == NULL){
 				containerFilename = argv[i];
 			}
@@ -387,13 +269,14 @@ int main(int argc, const char* argv[]){
 		printf("This feature is not supported yet. Please try again in the next version\n");
 		exit(0);
 	}else{
-		containerFileStream = createFileStream(false, config.filename);
+		containerFileStream = fopen(config.filename, "w+");
 	}
 
 	time_t timePtr = time(NULL);
 	struct tm timeStruct = *localtime(&timePtr);
 
-	fprintf(containerFileStream, "enable\nclock set %d:%d:%d %d %s %d\nconfig t", timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, timeStruct.tm_mday, month[timeStruct.tm_mon], timeStruct.tm_year + 1900);
+	if(!snippet)
+		fprintf(containerFileStream, "enable\nclock set %d:%d:%d %d %s %d\nconfig t", timeStruct.tm_hour, timeStruct.tm_min, timeStruct.tm_sec, timeStruct.tm_mday, month[timeStruct.tm_mon], timeStruct.tm_year + 1900);
 
 	if(config.hostname)
 		fprintf(containerFileStream, "hostname %s\n", config.hostname);
@@ -420,13 +303,13 @@ int main(int argc, const char* argv[]){
 
 			fprintf(containerFileStream, "exit\n");
 
-			if(strcmp(config.vlan.ports[i],"#") != 0 && strcmp(config.vlan.ports[i], "noport") != 0){
+			if(strcmp(config.vlan.interfaces[i].ports,"#") != 0 && strcmp(config.vlan.interfaces[i].ports, "noport") != 0){
 				char* tempMode = "access";
 
-				if(strcmp(config.vlan.mode[i],"#") != 0 && strcmp(config.vlan.mode[i], "nomode") != 0)
-					tempMode = config.vlan.mode[i];
+				if(strcmp(config.vlan.interfaces[i].mode,"#") != 0 && strcmp(config.vlan.interfaces[i].mode, "nomode") != 0)
+					tempMode = config.vlan.interfaces[i].mode;
 
-				fprintf(containerFileStream, "int range %s\nswitchport mode %s\nswitchport %s vlan %s\nexit\n", config.vlan.ports[i], tempMode, tempMode, config.vlan.ids[i]);
+				fprintf(containerFileStream, "int range %s\nswitchport mode %s\nswitchport %s vlan %s\nexit\n", config.vlan.interfaces[i].ports, tempMode, tempMode, config.vlan.ids[i]);
 			}
 
 		}
@@ -434,14 +317,14 @@ int main(int argc, const char* argv[]){
 
 	if(config.etherchannel.size > 0){
 		for(int i = 0; i < config.etherchannel.size; i++){
-			if(strcmp(config.etherchannel.ports[i], "#") != 0 && strcmp(config.etherchannel.ports[i], "noport") != 0){
+			if(strcmp(config.etherchannel.interfaces[i].ports, "#") != 0 && strcmp(config.etherchannel.interfaces[i].ports, "noport") != 0){
 				char* tempMode = "on";
 
-				if(strcmp(config.etherchannel.mode[i], "#") != 0 || strcmp(config.etherchannel.mode[i], "nomode") != 0){
-					tempMode = config.etherchannel.mode[i];
+				if(strcmp(config.etherchannel.interfaces[i].mode, "#") != 0 || strcmp(config.etherchannel.interfaces[i].mode, "nomode") != 0){
+					tempMode = config.etherchannel.interfaces[i].mode;
 				}
 
-				fprintf(containerFileStream, "int range %s\nchannel-group %s mode %s\n", config.etherchannel.ports[i], config.etherchannel.ids[i], tempMode);
+				fprintf(containerFileStream, "int range %s\nchannel-group %s mode %s\n", config.etherchannel.interfaces[i].ports, config.etherchannel.ids[i], tempMode);
 			}
 		}
 	}
