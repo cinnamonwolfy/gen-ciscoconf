@@ -1,5 +1,5 @@
 /***********************************\
-* Cisco Config Generator, v0.55     *
+* Cisco Config Generator, v0.56     *
 * (c)2021 pocketlinux32, Under GPL3 *
 * Types Source File                 *
 \***********************************/

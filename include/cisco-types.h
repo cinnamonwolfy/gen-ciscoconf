@@ -1,3 +1,8 @@
+/************************************\
+* Cisco Config Generator, v0.56      *
+* (c)2021 pocketlinux32, Under GPLv3 *
+* Types Header File                  *
+\************************************/
 #include <pl32-memory.h>
 
 typedef struct ciscoint ciscoint_t;
