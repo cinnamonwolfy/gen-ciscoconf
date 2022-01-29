@@ -19,8 +19,8 @@ struct ciscoint {
 }
 
 // Cisco Table Structure
-
 struct ciscotable {
 	ciscoconst_t type;
 	ciscoint_t* interfaces;
 }
+
