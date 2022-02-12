@@ -3,8 +3,8 @@
 * (c)2021 pocketlinux32, Under GPL3 *
 * Types Source File                 *
 \***********************************/
-#include <cisco-constants.h>
-#include <cisco-types.h>
+#include <cisco/cisco-constants.h>
+#include <cisco/cisco-types.h>
 
 // Cisco Interface Structure
 struct ciscoint {
@@ -24,3 +24,10 @@ struct ciscotable {
 	ciscoint_t* interfaces;
 }
 
+ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2){
+	ciscoconst_t* returnInt = plGCMalloc(sizeof(ciscoint_t*));
+
+	returnInt->type = inttype;
+	returnInt->mode = CISCO_MODE_ACCESS;
+	returnInt->ports
+}
