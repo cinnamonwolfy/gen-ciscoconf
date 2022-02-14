@@ -21,14 +21,15 @@ struct ciscoint {
 // Cisco Table Structure
 struct ciscotable {
 	ciscoconst_t type;
+	ciscoconst_t mode;
 	int size;
 	ciscoint_t** interfaces;
 }
 
-ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2){
+ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2){
 	ciscoint_t* returnInt = plGCMalloc(sizeof(ciscoint_t));
 
-	returnInt->type = inttype;
+	returnInt->type = type;
 	returnInt->mode = CISCO_MODE_ACCESS;
 	returnInt->ports[0] = port1;
 	returnInt->ports[1] = port2;
@@ -41,10 +42,11 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2){
 	return returnInt;
 }
 
-ciscotable_t* ciscoCreateTable(ciscoconst_t inttype){
+ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 	ciscotable_t* returnTable = plGCMalloc(sizeof(ciscotable_t));
 
-	returnTable->type = inttype;
+	returnTable->type = type;
+	returnTable->mode = mode;
 	returnTable->size = 0;
 	returnTable->interfaces = plGCMalloc(2 * sizeof(ciscoint_t*));
 
@@ -66,5 +68,33 @@ int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
 		table->interfaces = tempPtr;
 	}
 
-	table->interfaces[table.size] = interface;
+	table->interfaces[table->size] = interface;
+	interface->mode = CISCO_MODE_IN_VLAN;
+	table->size++;
+
+	return 0;
+}
+
+ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
+	if(index < 0 || index > table->size-1){
+		return NULL;
+	}
+
+	return table->interfaces[index];
+}
+
+char* ciscoParseInterface(ciscoint_t* interface){
+	//TODO: add code to parse interfaces
+}
+
+char* ciscoParseTable(ciscotable_t* table){
+	//TODO: add code to parse tables
+}
+
+void ciscoPrintInterface(ciscoint_t* interface){
+	//TODO: add code to print interfaces
+}
+
+void ciscoPrintTable(ciscotable_t* table){
+	//TODO: add code to print tables
 }
