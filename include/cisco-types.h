@@ -14,7 +14,7 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2);
 ciscotable_t* ciscoCreateTable(ciscoconst_t inttype);
 
 void ciscoModifyInterface(ciscoint_t* interface, int modType, ...);
-void ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface);
+int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface);
 
 char* ciscoParseInterface(ciscoint_t* interface);
 char* ciscoParseTable(ciscotable_t* table);

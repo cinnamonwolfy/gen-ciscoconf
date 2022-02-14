@@ -21,11 +21,12 @@ struct ciscoint {
 // Cisco Table Structure
 struct ciscotable {
 	ciscoconst_t type;
-	ciscoint_t* interfaces;
+	int size;
+	ciscoint_t** interfaces;
 }
 
 ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2){
-	ciscoconst_t* returnInt = plGCMalloc(sizeof(ciscoint_t*));
+	ciscoint_t* returnInt = plGCMalloc(sizeof(ciscoint_t));
 
 	returnInt->type = inttype;
 	returnInt->mode = CISCO_MODE_ACCESS;
@@ -36,4 +37,34 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2){
 	returnInt->ip_addr = NULL;
 	returnInt->sub_mask = 0;
 	returnInt->gateway = NULL;
+
+	return returnInt;
+}
+
+ciscotable_t* ciscoCreateTable(ciscoconst_t inttype){
+	ciscotable_t* returnTable = plGCMalloc(sizeof(ciscotable_t));
+
+	returnTable->type = inttype;
+	returnTable->size = 0;
+	returnTable->interfaces = plGCMalloc(2 * sizeof(ciscoint_t*));
+
+	return returnTable;
+}
+
+void ciscoModifyInterface(ciscoint_t* interface, int mode, ...){
+	//TODO: code to modify an interface
+}
+
+int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
+	if(table->size > 1){
+		void* tempPtr = plGCRealloc(table->interfaces, table->size * sizeof(ciscoint_t*));
+
+		if(!tempPtr){
+			return 1;
+		}
+
+		table->interfaces = tempPtr;
+	}
+
+	table->interfaces[table.size] = interface;
 }
