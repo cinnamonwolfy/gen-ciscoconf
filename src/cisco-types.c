@@ -12,7 +12,7 @@ struct ciscoint {
 	ciscoconst_t mode;
 	int ports[2];
 	char* name;
-	char* allowed_vlans;
+	int* allowed_vlans;
 	char* ip_addr;
 	int sub_mask;
 	char* gateway;
@@ -29,5 +29,11 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t inttype, int port1, int port2){
 
 	returnInt->type = inttype;
 	returnInt->mode = CISCO_MODE_ACCESS;
-	returnInt->ports
+	returnInt->ports[0] = port1;
+	returnInt->ports[1] = port2;
+	returnInt->name = NULL;
+	returnInt->allowed_vlans = NULL;
+	returnInt->ip_addr = NULL;
+	returnInt->sub_mask = 0;
+	returnInt->gateway = NULL;
 }
