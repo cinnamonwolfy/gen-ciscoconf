@@ -59,7 +59,7 @@ void ciscoModifyInterface(ciscoint_t* interface, int mode, ...){
 
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
 	if(table->size > 1){
-		void* tempPtr = plGCRealloc(table->interfaces, table->size * sizeof(ciscoint_t*));
+		void* tempPtr = plGCRealloc(table->interfaces, (table->size + 1) * sizeof(ciscoint_t*));
 
 		if(!tempPtr){
 			return 1;
