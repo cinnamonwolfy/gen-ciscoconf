@@ -53,8 +53,14 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 	return returnTable;
 }
 
-void ciscoModifyInterface(ciscoint_t* interface, int mode, ...){
-	//TODO: code to modify an interface
+void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
+	va_list values;
+	va_start(values, modType);
+
+	switch(modType){
+		case CISCO_MODTYPE_TYPE:
+			
+	}
 }
 
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){

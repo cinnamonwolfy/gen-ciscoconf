@@ -11,9 +11,9 @@ typedef struct ciscotable ciscotable_t;
 typedef int ciscoconst_t;
 
 ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2);
-ciscotable_t* ciscoCreateTable(ciscoconst_t type);
+ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode);
 
-void ciscoModifyInterface(ciscoint_t* interface, int modType, ...);
+void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...);
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface);
 ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index);
 
