@@ -26,6 +26,7 @@ struct ciscotable {
 	ciscoint_t** interfaces;
 }
 
+// Allocates memory for an interface structure and returns it
 ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2){
 	ciscoint_t* returnInt = plGCMalloc(sizeof(ciscoint_t));
 
@@ -42,6 +43,7 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2){
 	return returnInt;
 }
 
+// Allocates memory for a table structure and returns it
 ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 	ciscotable_t* returnTable = plGCMalloc(sizeof(ciscotable_t));
 
@@ -53,6 +55,7 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 	return returnTable;
 }
 
+// Modifies attributes in an interface
 void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 	va_list values;
 	va_start(values, modType);
@@ -63,6 +66,7 @@ void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 	}
 }
 
+// Adds an interface to a table
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
 	if(table->size > 1){
 		void* tempPtr = plGCRealloc(table->interfaces, (table->size + 1) * sizeof(ciscoint_t*));
@@ -81,6 +85,7 @@ int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
 	return 0;
 }
 
+// Gets a pointer to an interface from a table
 ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 	if(index < 0 || index > table->size-1){
 		return NULL;
