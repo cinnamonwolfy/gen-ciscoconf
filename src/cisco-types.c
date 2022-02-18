@@ -62,7 +62,8 @@ void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 
 	switch(modType){
 		case CISCO_MODTYPE_TYPE:
-			
+			interface->type = va_arg(values, ciscoconst_t);
+			break;
 	}
 }
 
