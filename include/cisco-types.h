@@ -4,6 +4,7 @@
 * Types Header File                  *
 \************************************/
 #include <pl32/pl32-memory.h>
+#include <stdint.h>
 #include <stdarg.h>
 
 typedef struct ciscoint ciscoint_t;
@@ -13,7 +14,9 @@ typedef int ciscoconst_t;
 ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2);
 ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode);
 
-void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...);
+int ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...);
+int ciscoModifyTable(ciscotable_t* table, ciscoconst_t modType, ...);
+
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface);
 ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index);
 

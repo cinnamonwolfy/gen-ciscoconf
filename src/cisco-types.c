@@ -10,26 +10,26 @@
 struct ciscoint {
 	ciscoconst_t type;
 	ciscoconst_t mode;
-	int ports[2];
+	uint16_t ports[2];
 	char description[4096];
 	size_t allvlan_amnt;
-	int* allowed_vlans;
-	char* ip_addr;
-	int sub_mask;
-	char* gateway;
+	uint16_t* allowed_vlans;
+	char ip_addr[16];
+	uint16_t sub_mask;
+	char gateway[16];
 }
 
 // Cisco Table Structure
 struct ciscotable {
 	ciscoconst_t type;
 	ciscoconst_t mode;
-	char name[4096];
-	int size;
+	char name[128];
+	size_t size;
 	ciscoint_t** interfaces;
 }
 
 // Allocates memory for an interface structure and returns it
-ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2){
+ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t port2){
 	ciscoint_t* returnInt = plGCMalloc(sizeof(ciscoint_t));
 
 	returnInt->type = type;
@@ -58,21 +58,39 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 }
 
 // Modifies attributes in an interface
-void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
+int ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 	va_list values;
 	va_start(values, modType);
 	ciscoconst_t constant;
 	char* string;
-	
-
-	if
+	uint16_t numbers[2];
 
 	switch(modType){
-		case CISCO_MODTYPE_TYPE:
-			
-			interface->type = va_arg(values, ciscoconst_t);
+		case CISCO_MODTYPE_TYPE: ;
+		case CISCO_MODTYPE_MODE: ;
+			constant = va_arg(values, ciscoconst_t);
 			break;
+		case CISCO_MODTYPE_DESC: ;
+		case CISCO_MODTYPE_IP_ADDR: ;
+		case CISCO_MODTYPE_GATEWAY: ;
+			string = va_arg(values, char*);
+			break;
+		case CISCO_MODTYPE_PORTS: ;
+			numbers[0] = va_arg(values, uint16_t);
+		case CISCO_MODTYPE_ALLOW_VLAN: ;
+		case CISCP_MODTYPE_SUBMASK: ;
+			numbers[0] = va_arg(values, uint16_t);
+			break;
+		default:
+			return 1;
 	}
+
+	switch(modType){
+		case CISCO_MODTYPE_TYPE: ;
+			if()
+	}
+
+	return 0;
 }
 
 // Adds an interface to a table
