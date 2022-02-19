@@ -11,7 +11,8 @@ struct ciscoint {
 	ciscoconst_t type;
 	ciscoconst_t mode;
 	int ports[2];
-	char* name;
+	char description[4096];
+	size_t allvlan_amnt;
 	int* allowed_vlans;
 	char* ip_addr;
 	int sub_mask;
@@ -22,6 +23,7 @@ struct ciscoint {
 struct ciscotable {
 	ciscoconst_t type;
 	ciscoconst_t mode;
+	char name[4096];
 	int size;
 	ciscoint_t** interfaces;
 }
@@ -59,9 +61,15 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 void ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 	va_list values;
 	va_start(values, modType);
+	ciscoconst_t constant;
+	char* string;
+	
+
+	if
 
 	switch(modType){
 		case CISCO_MODTYPE_TYPE:
+			
 			interface->type = va_arg(values, ciscoconst_t);
 			break;
 	}
