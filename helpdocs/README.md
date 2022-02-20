@@ -1,8 +1,4 @@
 # Help Documentation
 
-In this directory, you will find multiple pieces of documentation for this
-program. This includes:
-
-- [Interpreter Syntax](syntax.md)
-
-- [API Calls](api.md)
+Due to this project currently undergoing a complete rewrite, I cannot provide
+a concise and clear helpdoc at the moment. I hope you understand

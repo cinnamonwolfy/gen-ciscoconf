@@ -86,7 +86,7 @@ int ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 			return 1;
 	}
 
-	//
+	// Actual modifier
 	switch(modType){
 		case CISCO_MODTYPE_TYPE: ;
 			if(constant < 0 || constant > 7)
