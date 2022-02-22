@@ -2,17 +2,72 @@
 
 **NOTICE: This project is currently undergoing a rewrite. Expect it to have
 bugs, missing features and crappy documentation. I will do my best to fix all
-of these issues soon**
+of these issues soon. If you'd like to use the old version of the program, go
+to the `old` folder**
 
 Cisco Configurator is a library and a toolset to aid with the configuration of
 Cisco equipment, mainly switches and routers.
 
-# Components
+# Build Instructions
 
-This software consists of two parts: the backend (pl32lib+ciscolib) and the
-frontend (gen-ciscoconf+cc-tui)
+**NOTICE: There is no build system set in place yet, so you'll have to compile
+it manually. The build system is being worked on currently. This will only cover
+building it on Unix-like/Cygwin/WSL systems with the GCC compiler**
 
-## Backend
+The build process goes as follows:
 
-The backend is mostly made up by ciscolib, which depends on
-[pl32lib](github.com/pocketlinux32/pl32lib)
+1. pl32lib
+2. ciscolib
+3. gen-ciscoconf
+4. cc-tui
+
+## [pl32lib](https://github.com/pocketlinux32/pl32lib)
+
+Download the pl32lib source from the link above, open a terminal within the
+pl32lib project directory then run the following:
+
+```
+cd src
+# For shared
+gcc -fPIC -c -I../include pl32-memory.c pl32-file.c pl32-shell.c pl32-term.c \
+-o libpl32.o
+gcc -shared libpl32.o -o libpl32.so
+# For static
+gcc -c -I../include pl32-memory.c pl32-file.c pl32-shell.c pl32-term.c -o libpl32.o
+ar rc libpl32.a libpl32.o
+```
+
+If you want a fully portable package, remove `pl32-term.c` from the command
+option
+
+## ciscolib
+
+Run the following from the gen-ciscoconf project folder:
+
+```
+cd src
+# For shared
+gcc -fPIC -c -I../include cisco-types.c -o libcisco.o
+gcc -shared libcisco.o -o libcisco.so
+# For static
+gcc -c -I../include cisco-types.c -o libcisco.o
+ar rc libcisco.a libcisco.o
+```
+
+## gen-ciscoconf
+
+Run the following from the gen-ciscoconf project folder:
+
+```
+cd src
+gcc -I../include -I/path/to/pl32/headers -L. -L/path/to/libpl32 gen-ciscoconf.c -o gen-ciscoconf
+```
+
+## cc-tui (optional)
+
+Run the following from the gen-ciscoconf project folder:
+
+```
+cd src
+gcc -I../include -I/path/to/pl32/headers -L. -L/path/to/libpl32 -lncurses cc-tui.c -o cc-tui
+```
