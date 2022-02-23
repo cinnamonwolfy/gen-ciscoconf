@@ -23,22 +23,8 @@ The build process goes as follows:
 
 ## [pl32lib](https://github.com/pocketlinux32/pl32lib)
 
-Download the pl32lib source from the link above, open a terminal within the
-pl32lib project directory then run the following:
-
-```
-cd src
-# For shared
-gcc -fPIC -c -I../include pl32-memory.c pl32-file.c pl32-shell.c pl32-term.c \
--o libpl32.o
-gcc -shared libpl32.o -o libpl32.so
-# For static
-gcc -c -I../include pl32-memory.c pl32-file.c pl32-shell.c pl32-term.c -o libpl32.o
-ar rc libpl32.a libpl32.o
-```
-
-If you want a fully portable package, remove `pl32-term.c` from the command
-option
+Download the pl32lib source from the link above, and follow the instructions
+outlined in the README.md
 
 ## ciscolib
 
