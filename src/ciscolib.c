@@ -3,8 +3,8 @@
 * (c)2021 pocketlinux32, Under GPL3 *
 * Types Source File                 *
 \***********************************/
-#include <cisco/cisco-constants.h>
-#include <cisco/cisco-types.h>
+#include <ciscolib-const.h>
+#include <ciscolib.h>
 
 // Cisco Interface Structure
 struct ciscoint {
