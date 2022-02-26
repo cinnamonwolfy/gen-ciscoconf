@@ -58,7 +58,7 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
 }
 
 // Modifies attributes in an interface
-int ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
+uint8_t ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 	va_list values;
 	va_start(values, modType);
 	ciscoconst_t constant;
@@ -79,20 +79,37 @@ int ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 		case CISCO_MODTYPE_PORTS: ;
 			numbers[0] = va_arg(values, uint16_t);
 		case CISCO_MODTYPE_ALLOW_VLAN: ;
-		case CISCP_MODTYPE_SUBMASK: ;
+		case CISCO_MODTYPE_SUBMASK: ;
 			numbers[1] = va_arg(values, uint16_t);
 			break;
 		default:
-			return 1;
+			return CISCO_ERROR_INVALID_ACTION;
 	}
 
-	//
+	// Action Parser
 	switch(modType){
 		case CISCO_MODTYPE_TYPE: ;
-			if(constant < 0 || constant > 7)
-				return 2;
+			if(constant > CISCO_INT_VLAN)
+				return CISCO_ERROR_INVALID_VALUE;
 
-			
+			interface->type = constant;
+			break;
+		case CISCO_MODTYPE_MODE: ;
+			if(interface->mode == CISCO_MODE_IN_PORTCH){
+				return CISCO_ERROR_INVALID_ACTION;
+			}else if(constant < CISCO_MODE_ACCESS || constant > CISCO_MODE_IN_PORTCH){
+				return CISCO_ERROR_INVALID_VALUE;
+			}
+
+			interface->mode = constant;
+			break;
+		case CISCO_MODTYPE_PORTS: ;
+			interface->ports[0] = numbers[0];
+			interface->ports[1] = numbers[1];
+			break;
+		case CISCO_MODTYPE_DESC: ;
+			if(strlen(string) > 4096)
+				return CISCO_ERROR_BUFFER_OVERFLOW;
 	}
 
 	return 0;

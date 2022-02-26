@@ -9,7 +9,7 @@
 
 typedef struct ciscoint ciscoint_t;
 typedef struct ciscotable ciscotable_t;
-typedef int ciscoconst_t;
+typedef uint8_t ciscoconst_t;
 
 ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2);
 ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode);
