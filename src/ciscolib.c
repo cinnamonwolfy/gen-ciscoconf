@@ -36,7 +36,6 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 	returnInt->mode = CISCO_MODE_ACCESS;
 	returnInt->ports[0] = port1;
 	returnInt->ports[1] = port2;
-	returnInt->name = NULL;
 	returnInt->allowed_vlans = NULL;
 	returnInt->ip_addr = NULL;
 	returnInt->sub_mask = 0;
@@ -108,8 +107,13 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 			interface->ports[1] = numbers[1];
 			break;
 		case CISCO_MODTYPE_DESC: ;
-			if(strlen(string) > 4096)
+			if(strlen(string)+1 > 4096)
 				return CISCO_ERROR_BUFFER_OVERFLOW;
+
+			strcpy(interface->description, string);
+			break;
+		case CISCO_MODTYPE_ALLOW_VLAN: ;
+			if(numbers
 	}
 
 	return 0;

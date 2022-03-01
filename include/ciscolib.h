@@ -3,7 +3,7 @@
 * (c)2021 pocketlinux32, Under GPLv3 *
 * Types Header File                  *
 \************************************/
-#include <pl32/pl32-memory.h>
+#include <pl32-memory.h>
 #include <stdint.h>
 #include <stdarg.h>
 
