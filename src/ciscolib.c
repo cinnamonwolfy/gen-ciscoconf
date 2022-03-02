@@ -36,6 +36,7 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 	returnInt->mode = CISCO_MODE_ACCESS;
 	returnInt->ports[0] = port1;
 	returnInt->ports[1] = port2;
+	returnInt->allvlan_amnt = 0;
 	returnInt->allowed_vlans = NULL;
 	returnInt->ip_addr = NULL;
 	returnInt->sub_mask = 0;
@@ -113,7 +114,10 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 			strcpy(interface->description, string);
 			break;
 		case CISCO_MODTYPE_ALLOW_VLAN: ;
-			if(numbers
+			if(numbers[1] > 4096)
+				return CISCO_ERROR_OUT_OF_RANGE;
+
+			void* tempVar = plGCRealloc(
 	}
 
 	return 0;
