@@ -49,7 +49,7 @@ Here is a list of valid modes for only port-channel:
 - `CISCO_MODE_PASSIVE` -> Enables EtherChannel in LACP mode if connected to
 another device in LACP mode
 
-- `CISCO_MODE_DESIRABLE -> Enables EtherChannel in PAgP mode
+- `CISCO_MODE_DESIRABLE` -> Enables EtherChannel in PAgP mode
 
 - `CISCO_MODE_AUTO` -> Enables EtherChannel in PAgP mode if connected to
 another device in PAgP mode
