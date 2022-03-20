@@ -152,7 +152,9 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 }
 
 char* ciscoParseInterface(ciscoint_t* interface){
-	//TODO: add code to parse interfaces
+	switch(interface->type){
+		case CISCO_INT_
+	}
 }
 
 char* ciscoParseTable(ciscotable_t* table){
