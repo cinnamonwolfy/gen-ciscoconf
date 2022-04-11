@@ -6,6 +6,7 @@
 #include <pl32-memory.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <time.h>
 
 typedef struct ciscoint ciscoint_t;
 typedef struct ciscotable ciscotable_t;
