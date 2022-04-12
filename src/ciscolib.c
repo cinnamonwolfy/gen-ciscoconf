@@ -29,8 +29,8 @@ struct ciscotable {
 }
 
 // Allocates memory for an interface structure and returns it
-ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t port2){
-	ciscoint_t* returnInt = plGCMalloc(sizeof(ciscoint_t));
+ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t port2, plgc_t* gc){
+	ciscoint_t* returnInt = plGCAlloc(gc, sizeof(ciscoint_t));
 
 	returnInt->type = type;
 	returnInt->mode = CISCO_MODE_ACCESS;
@@ -46,19 +46,19 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 }
 
 // Allocates memory for a table structure and returns it
-ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode){
-	ciscotable_t* returnTable = plGCMalloc(sizeof(ciscotable_t));
+ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode, plgc_t* gc){
+	ciscotable_t* returnTable = plGCAlloc(gc, sizeof(ciscotable_t));
 
 	returnTable->type = type;
 	returnTable->mode = mode;
 	returnTable->size = 0;
-	returnTable->interfaces = plGCMalloc(2 * sizeof(ciscoint_t*));
+	returnTable->interfaces = plGCAlloc(gc, 2 * sizeof(ciscoint_t*));
 
 	return returnTable;
 }
 
 // Modifies attributes in an interface
-uint8_t ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
+uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t modType, ...){
 	va_list values;
 	va_start(values, modType);
 	ciscoconst_t constant;
@@ -117,7 +117,7 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 			if(numbers[1] > 4096)
 				return CISCO_ERROR_OUT_OF_RANGE;
 
-			void* tempVar = plGCRealloc(
+			void* tempVar = plGCRealloc(gc, interfaces->
 	}
 
 	return 0;
@@ -126,17 +126,20 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...){
 // Adds an interface to a table
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
 	if(table->size > 1){
-		void* tempPtr = plGCRealloc(table->interfaces, (table->size + 1) * sizeof(ciscoint_t*));
+		void* tempPtr = plGCRealloc(gc, table->interfaces, (table->size + 1) * sizeof(ciscoint_t*));
 
 		if(!tempPtr){
-			return 1;
+			return CISCO_ERROR_PL32LIB_GC;
 		}
 
 		table->interfaces = tempPtr;
 	}
 
 	table->interfaces[table->size] = interface;
-	interface->mode = CISCO_MODE_IN_VLAN;
+
+	if(table->type == CISCO_TYPE_PORTCH)
+		interface->mode = CISCO_MODE_IN_PORTCH;
+
 	table->size++;
 
 	return 0;
