@@ -12,10 +12,10 @@ struct ciscoint {
 	ciscoconst_t mode;
 	uint16_t ports[2];
 	char description[4096];
-	plarray_t* allowedVlans;
-	char ip_addr[44];
+	plarray_t* allowed_vlans;
+	char ip_addr[16];
 	uint16_t sub_mask;
-	char gateway[44];
+	char gateway[16];
 }
 
 // Cisco Table Structure
@@ -23,7 +23,8 @@ struct ciscotable {
 	ciscoconst_t type;
 	ciscoconst_t mode;
 	char name[128];
-	plarray_t* interfaces;
+	size_t size;
+	ciscoint_t** interfaces;
 }
 
 // Allocates memory for an interface structure and returns it
@@ -34,12 +35,12 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 	returnInt->mode = CISCO_MODE_ACCESS;
 	returnInt->ports[0] = port1;
 	returnInt->ports[1] = port2;
-	returnInt->allowedVlans = plGCAlloc(gc, sizeof(plarray_t));
-	returnInt->allowedVlans->size = 0;
-	returnInt->allowedVlans->array = plGCAlloc(gc, 2 * sizeof(uint16_t));
-	returnInt->ip_addr = "";
+	returnInt->allowed_vlans = plGCAlloc(gc, sizeof(plarray_t));
+	returnInt->allowed_vlans->array = plGCAlloc(gc, 2 * sizeof(uint16_t));
+	returnInt->allowed_vlans->size = 0;
+	returnInt->ip_addr = NULL;
 	returnInt->sub_mask = 0;
-	returnInt->gateway = "";
+	returnInt->gateway = NULL;
 
 	return returnInt;
 }
@@ -50,9 +51,8 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode, plgc_t* gc)
 
 	returnTable->type = type;
 	returnTable->mode = mode;
-	returnTable->interfaces = plGCAlloc(gc, plarray_t);
-	returnTable->interfaces->size = 0;
-	returnTable->interfaces->array = plGCAlloc(gc, 2 * sizeof(ciscoint_t*));
+	returnTable->size = 0;
+	returnTable->interfaces = plGCAlloc(gc, 2 * sizeof(ciscoint_t*));
 
 	return returnTable;
 }
@@ -117,21 +117,9 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 			if(numbers[1] > 4096)
 				return CISCO_ERROR_OUT_OF_RANGE;
 
-			if(interface->allowedVlans->size > 2){
-				void* tempVar = plGCRealloc(gc, interface->allowedVlans->array, (interface->allowedVlans->size + 1) * sizeof(uint16_t));
-
-				if(!tempVar)
-					return CISCO_ERROR_PL32LIB_GC;
-
-				interface->allowedVlans->array = tempVar;
+			if(interface->allowed_vlans->size > 2){
+				void* tempVar = plGCRealloc(gc, interface->allowed_vlans->array);
 			}
-
-			uint16_t* array = interface->allowedVlans->array;
-
-			array[interface->allowedVlans->size] = numbers[1];
-			interface->allowedVlans->size++;
-			break;
-		case CISCO_MODTYPE_IP_ADDR: ;
 	}
 
 	return 0;
@@ -168,12 +156,9 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 	return table->interfaces[index];
 }
 
-char* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
-	char* returnString = plGCMalloc(gc, 2 * yes)
-
+char* ciscoParseInterface(ciscoint_t* interface){
 	switch(interface->type){
-		case CISCO_INT_F0:
-			
+		case CISCO_INT_
 	}
 }
 
