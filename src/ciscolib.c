@@ -13,8 +13,8 @@ struct ciscoint {
 	uint16_t ports[2];
 	char description[4096];
 	plarray_t* allowedVlans;
-	char ip_addr[44];
-	uint16_t sub_mask;
+	char ipAddr[44];
+	uint16_t subMask;
 	char gateway[44];
 }
 
@@ -37,8 +37,8 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 	returnInt->allowedVlans = plGCAlloc(gc, sizeof(plarray_t));
 	returnInt->allowedVlans->size = 0;
 	returnInt->allowedVlans->array = plGCAlloc(gc, 2 * sizeof(uint16_t));
-	returnInt->ip_addr = "";
-	returnInt->sub_mask = 0;
+	returnInt->ipAddr = "";
+	returnInt->subMask = 0;
 	returnInt->gateway = "";
 
 	return returnInt;
@@ -132,6 +132,9 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 			interface->allowedVlans->size++;
 			break;
 		case CISCO_MODTYPE_IP_ADDR: ;
+			if(strcmp(interface->gateway, "") != 0){
+				char* tempChar[2] = { strchr(string, ':'), strchr(interfaces->gateway, ':') };
+			}
 	}
 
 	return 0;
@@ -169,7 +172,7 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 }
 
 char* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
-	char* returnString = plGCMalloc(gc, 2 * yes)
+	char* returnString = plGCMalloc(gc, 2 * sizeof(char));
 
 	switch(interface->type){
 		case CISCO_INT_F0:
