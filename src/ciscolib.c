@@ -132,9 +132,35 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 			interface->allowedVlans->size++;
 			break;
 		case CISCO_MODTYPE_IP_ADDR: ;
-			if(strcmp(interface->gateway, "") != 0){
-				char* tempChar[2] = { strchr(string, ':'), strchr(interfaces->gateway, ':') };
+		case CISCO_MODTYPE_GATEWAY: ;
+			char* testString;
+			char* writeString;
+
+			if(modType == CISCO_MODTYPE_GATEWAY){
+				testString = interface->ipAddr;
+				writeString = interface->gateway;
+			}else{
+				testString = interface->gateway;
+				writeString = interface->ipAddr;
 			}
+
+			char* isIPv6[2] = { strchr(string, ':'), strchr(testString, ':') };
+			size_t strSize = strlen(string);
+
+			if(strcmp(testString, "") != 0) && ((isIPv6[0] && !isIPv6[1]) || (isIPv6[1] && !isIPv6[0])))
+				return CISCO_ERROR_MISMATCHED_IPVER;
+
+			if((!isIPv6[0] && strSize > 15) || (isIPv6[1] && strSize > 44))
+				return CISCO_ERROR_BUFFER_OVERFLOW;
+
+			memcpy(writeString, string, 44);
+			break;
+		case CISCO_MODTYPE_SUBMASK: ;
+			if(number[1] > 32)
+				return CISCO_ERROR_OUT_OF_RANGE;
+
+			interface->subMask = number[1];
+			break;
 	}
 
 	return 0;

@@ -21,7 +21,7 @@
 #define CISCO_MODTYPE_DESC uint8_t(18)
 #define CISCO_MODTYPE_ALLOW_VLAN uint8_t(19)
 #define CISCO_MODTYPE_IP_ADDR uint8_t(20)
-#define CISCO_MODTYPE_SUB_MASK uint8_t(21)
+#define CISCO_MODTYPE_SUBMASK uint8_t(21)
 #define CISCO_MODTYPE_GATEWAY uint8_t(22)
 
 #define CISCO_ERROR_INVALID_ACTION uint8_t(23)
