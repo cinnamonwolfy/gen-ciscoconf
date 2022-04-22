@@ -197,16 +197,66 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 	return table->interfaces[index];
 }
 
-char* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
-	char* returnString = plGCMalloc(gc, 2 * sizeof(char));
+plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
+	plfile_t* returnBuffer = plFOpen(NULL, "w+", gc);
+	char* placeholder = plGCAlloc(gc, 16 * sizeof(char*));
+	char cmdline[8192] = "";
 
 	switch(interface->type){
-		case CISCO_INT_F0:
-			
+		case CISCO_INT_F0: ;
+			strcpy(placeholder, "f0");
+			break;
+		case CISCO_INT_G0: ;
+			strcpy(placeholder, "g0");
+			break;
+		case CISCO_INT_G00: ;
+			strcpy(placeholder, "g0/0");
+			break;
+		case CISCO_INT_G01: ;
+			strcpy(placeholder, "g0/1");
+			break;
+		case CISCO_INT_S00: ;
+			strcpy(placeholder, "s0/0");
+			break;
+		case CISCO_INT_S01: ;
+			strcpy(placeholder, "s0/1");
+			break;
 	}
+
+	if(interface->number[0] == interface->number[1]){
+		sprintf(cmdline, "int range %s/%d\n", placeholder, interface->number[0])
+	}else{
+		sprintf(cmdline, "int range %s/%d-%d\n", placeholder, interface->number[0], interface[1]);
+	}
+
+	plPuts(returnBuffer, cmdline);
+	for(int i = 0; i < 16; i++)
+		placeholder[i] = 0;
+
+	switch(interface->mode){
+		case CISCO_TYPE_ACCESS: ;
+			plPuts(returnBuffer, "switchport mode access\n");
+			break;
+		case CISCO_TYPE_TRUNK: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_TYPE_ACCESS: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_TYPE_ACCESS: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_TYPE_ACCESS: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_TYPE_ACCESS: ;
+			strcpy(placeholder, "access");
+			break;
+	}
+
 }
 
-char* ciscoParseTable(ciscotable_t* table){
+plfile_t* ciscoParseTable(ciscotable_t* table){
 	//TODO: add code to parse tables
 }
 
