@@ -13,7 +13,7 @@ struct ciscoint {
 	uint16_t ports[2];
 	char description[4096];
 	plarray_t* allowedVlans;
-	char ipAddr[44];
+	char ipAddr[46];
 	uint16_t subMask;
 	char gateway[44];
 }
@@ -150,10 +150,11 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 			if(strcmp(testString, "") != 0) && ((isIPv6[0] && !isIPv6[1]) || (isIPv6[1] && !isIPv6[0])))
 				return CISCO_ERROR_MISMATCHED_IPVER;
 
-			if((!isIPv6[0] && strSize > 15) || (isIPv6[1] && strSize > 44))
+			if((!isIPv6[0] && strSize > 15) || (isIPv6[1] && strSize > 45))
 				return CISCO_ERROR_BUFFER_OVERFLOW;
 
-			memcpy(writeString, string, 44);
+			memcpy(writeString, string, strSize);
+			writeString
 			break;
 		case CISCO_MODTYPE_SUBMASK: ;
 			if(number[1] > 32)
@@ -167,7 +168,7 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 }
 
 // Adds an interface to a table
-int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface){
+int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface, plgc_t* gc){
 	if(table->size > 1){
 		void* tempPtr = plGCRealloc(gc, table->interfaces, (table->size + 1) * sizeof(ciscoint_t*));
 
@@ -233,31 +234,44 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 	for(int i = 0; i < 16; i++)
 		placeholder[i] = 0;
 
+	for(int i = 0; i < 8192; i++)
+		cmdline[i] = 0;
+
 	switch(interface->mode){
-		case CISCO_TYPE_ACCESS: ;
+		case CISCO_MODE_ACCESS: ;
 			plPuts(returnBuffer, "switchport mode access\n");
 			break;
-		case CISCO_TYPE_TRUNK: ;
-			strcpy(placeholder, "access");
+		case CISCO_MODE_TRUNK: ;
+			plPuts(returnBuffer, "switchport mode trunk\n");
 			break;
-		case CISCO_TYPE_ACCESS: ;
-			strcpy(placeholder, "access");
-			break;
-		case CISCO_TYPE_ACCESS: ;
-			strcpy(placeholder, "access");
-			break;
-		case CISCO_TYPE_ACCESS: ;
-			strcpy(placeholder, "access");
-			break;
-		case CISCO_TYPE_ACCESS: ;
-			strcpy(placeholder, "access");
-			break;
+		case CISCO_MODE_AUTO: ;
+			plPuts(returnBuffer, "switchport mode auto\n");
 	}
 
+	if(strcmp(interface->ipAddr, "") != 0){
+		char* isIPv6[2] = { strchr(, ':'), strchr(testString, ':') };
+		sprintf(cmdline, "ip address %s %d.%d.%d.%d", )
+	}
+
+	plGCFree(gc, placeholder);
+	plPuts(returnBuffer, "exit\n");
+	return returnBuffer;
 }
 
 plfile_t* ciscoParseTable(ciscotable_t* table){
-	//TODO: add code to parse tables
+	if(table->type == CISCO){
+		case CISCO_MODE_ACTIVE: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_MODE_PASSIVE: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_MODE_DESIRABLE: ;
+			strcpy(placeholder, "access");
+			break;
+		case CISCO_MODE_AUTO: ;
+			strcpy(placeholder, "access");
+			break;
 }
 
 void ciscoPrintInterface(ciscoint_t* interface){
