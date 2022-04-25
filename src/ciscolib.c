@@ -21,9 +21,41 @@ struct ciscoint {
 // Cisco Table Structure
 struct ciscotable {
 	ciscoconst_t type;
-	ciscoconst_t mode;
+	ciscoconst_t tableMode;
+	ciscoconst_t intMode;
 	char name[128];
 	plarray_t* interfaces;
+}
+
+plarray_t* ciscoCidrToOctet(uint8_t cidrMask, plgc_t* gc){
+	if(cidrMask > 32)
+		return NULL;
+
+	uint8_t ipBytes[4] = { 0, 0, 0, 0 };
+	uint8_t ipAdding[4] = { 128, 128, 128, 128 };
+
+	for(int i = 0; i < cidrMask; i++){
+		if(i < 8){
+			ipBytes[0] += ipAdding[0];
+			ipAdding[0] = ipAdding[0] >> 1;
+		}else if(i < 16){
+			ipBytes[1] += ipAdding[1];
+			ipAdding[1] = ipAdding[1] >> 1;
+		}else if(i < 24){
+			ipBytes[2] += ipAdding[2];
+			ipAdding[2] = ipAdding[2] >> 1;
+		}else{
+			ipBytes[3] += ipAdding[3];
+			ipAdding[3] = ipAdding[3] >> 1;
+		}
+	}
+
+	plarray_t* retArray = plGCAlloc(gc, sizeof(plarray_t));
+	retArray->array = plGCAlloc(gc, 4 * sizeof(uint8_t));
+	retArray->size = 4;
+	memcpy(retArray->array, ipAdding, 4 * sizeof(uint8_t));
+
+	return retArray;
 }
 
 // Allocates memory for an interface structure and returns it
@@ -45,11 +77,12 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 }
 
 // Allocates memory for a table structure and returns it
-ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode, plgc_t* gc){
+ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t tmode, ciscoconst_t imode, plgc_t* gc){
 	ciscotable_t* returnTable = plGCAlloc(gc, sizeof(ciscotable_t));
 
 	returnTable->type = type;
-	returnTable->mode = mode;
+	returnTable->tableMode = tmode;
+	returnTable->intMode = imode;
 	returnTable->interfaces = plGCAlloc(gc, plarray_t);
 	returnTable->interfaces->size = 0;
 	returnTable->interfaces->array = plGCAlloc(gc, 2 * sizeof(ciscoint_t*));
@@ -249,8 +282,31 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 	}
 
 	if(strcmp(interface->ipAddr, "") != 0){
-		char* isIPv6[2] = { strchr(, ':'), strchr(testString, ':') };
-		sprintf(cmdline, "ip address %s %d.%d.%d.%d", )
+		char* isIpAddrV6 = strchr(interface->ipAddr, ':');
+
+		if(!isIpAddrV6){
+			plarray_t* octetSubmask = ciscoCidrToOctet(interface->subMask, gc);
+			uint8_t* array = octetSubmask->array;
+			sprintf(cmdline, "ip address %s %d.%d.%d.%d\n", interface->ipAddr, array[0], array[1], array[2], array[3]);
+			plShellFreeArray(octetSubmask, false, gc);
+		}else{
+			sprintf(cmdline, "ipv6 address %s/%d\n", interface->ipAddr, interface->subMask);
+		}
+
+		plPuts(returnBuffer, cmdline);
+		for(int i = 0; i < 8192; i++)
+			cmdline[i] = 0;
+	}
+
+	if(strcmp(interface->gateway, "") != 0){
+		char* isIpAddrV6 = strchr(interface->ipAddr, ':');
+
+		if(!isIpAddrV6)
+			plPuts(returnBuffer, "ip default-gateway %s\n", interface->gateway);
+
+		plPuts(returnBuffer, cmdline);
+		for(int i = 0; i < 8192; i++)
+			cmdline[i] = 0;
 	}
 
 	plGCFree(gc, placeholder);
@@ -258,20 +314,27 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 	return returnBuffer;
 }
 
-plfile_t* ciscoParseTable(ciscotable_t* table){
-	if(table->type == CISCO){
-		case CISCO_MODE_ACTIVE: ;
-			strcpy(placeholder, "access");
-			break;
-		case CISCO_MODE_PASSIVE: ;
-			strcpy(placeholder, "access");
-			break;
-		case CISCO_MODE_DESIRABLE: ;
-			strcpy(placeholder, "access");
-			break;
-		case CISCO_MODE_AUTO: ;
-			strcpy(placeholder, "access");
-			break;
+plfile_t* ciscoParseTable(ciscotable_t* table, plgc_t* gc){
+	plfile_t* returnBuffer = plOpen(NULL, "w+", gc);
+
+	switch(table->type)
+
+	if(table->type == CISCO_INT_PORTCH){
+		switch(table->mode){
+			case CISCO_MODE_ACTIVE: ;
+				strcpy(placeholder, "access");
+				break;
+			case CISCO_MODE_PASSIVE: ;
+				strcpy(placeholder, "access");
+				break;
+			case CISCO_MODE_DESIRABLE: ;
+				strcpy(placeholder, "access");
+				break;
+			case CISCO_MODE_AUTO: ;
+				strcpy(placeholder, "access");
+				break;
+		}
+	}
 }
 
 void ciscoPrintInterface(ciscoint_t* interface){
