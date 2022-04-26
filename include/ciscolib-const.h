@@ -1,11 +1,16 @@
+/************************************\
+* Cisco Config Generator, v0.56      *
+* (c)2021 pocketlinux32, Under GPLv3 *
+* Ciscolib Constants Header File     *
+\************************************/
 #define CISCO_INT_F0 uint8_t(0)
 #define CISCO_INT_G0 uint8_t(1)
 #define CISCO_INT_G00 uint8_t(2)
 #define CISCO_INT_G01 uint8_t(3)
 #define CISCO_INT_S00 uint8_t(4)
 #define CISCO_INT_S01 uint8_t(5)
-#define CISCO_INT_PORTCH uint8_t(6)
-#define CISCO_INT_VLAN uint8_t(7)
+#define CISCO_INT_VLAN uint8_t(6)
+#define CISCO_INT_PORTCH uint8_t(7)
 
 #define CISCO_MODE_ACCESS uint8_t(16)
 #define CISCO_MODE_TRUNK uint8_t(17)

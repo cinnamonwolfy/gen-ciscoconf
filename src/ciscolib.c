@@ -1,8 +1,8 @@
-/***********************************\
-* Cisco Config Generator, v0.56     *
-* (c)2021 pocketlinux32, Under GPL3 *
-* Types Source File                 *
-\***********************************/
+/************************************\
+* Cisco Config Generator, v0.56      *
+* (c)2021 pocketlinux32, Under GPLv3 *
+* Ciscolib Source File               *
+\************************************/
 #include <ciscolib-const.h>
 #include <ciscolib.h>
 
@@ -15,7 +15,8 @@ struct ciscoint {
 	plarray_t* allowedVlans;
 	char ipAddr[46];
 	uint16_t subMask;
-	char gateway[44];
+	char gateway[46];
+	size_t preExitBufmark;
 }
 
 // Cisco Table Structure
@@ -24,7 +25,7 @@ struct ciscotable {
 	ciscoconst_t tableMode;
 	ciscoconst_t intMode;
 	char name[128];
-	uint16_t* 
+	uint16_t number;
 	plarray_t* interfaces;
 }
 
@@ -70,20 +71,25 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint16_t port1, uint16_t por
 	returnInt->allowedVlans = plGCAlloc(gc, sizeof(plarray_t));
 	returnInt->allowedVlans->size = 0;
 	returnInt->allowedVlans->array = plGCAlloc(gc, 2 * sizeof(uint16_t));
-	returnInt->ipAddr = "";
 	returnInt->subMask = 0;
-	returnInt->gateway = "";
+	for(int i = 0; i < 46; i++){
+		returnInt->ipAddr[i] = 0;
+		returnInt->gateway[i] = 0;
+	}
 
 	return returnInt;
 }
 
 // Allocates memory for a table structure and returns it
-ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t tmode, ciscoconst_t imode, plgc_t* gc){
+ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t tmode, ciscoconst_t imode, uint16_t number, plgc_t* gc){
 	ciscotable_t* returnTable = plGCAlloc(gc, sizeof(ciscotable_t));
 
 	returnTable->type = type;
 	returnTable->tableMode = tmode;
 	returnTable->intMode = imode;
+	for(int i = 0; i < 128; i++)
+		returnTable->name[i] = 0;
+	returnTable->number = number;
 	returnTable->interfaces = plGCAlloc(gc, sizeof(plarray_t));
 	returnTable->interfaces->size = 0;
 	returnTable->interfaces->array = plGCAlloc(gc, 2 * sizeof(ciscoint_t*));
@@ -301,6 +307,8 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 			cmdline[i] = 0;
 	}
 
+	interface->preExitBufmark = plFTell(returnBuffer);
+
 	if(strcmp(interface->gateway, "") != 0){
 		char* isIpAddrV6 = strchr(interface->ipAddr, ':');
 
@@ -310,10 +318,11 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 		plPuts(returnBuffer, cmdline);
 		for(int i = 0; i < 8192; i++)
 			cmdline[i] = 0;
+	}else{
+		plPuts(returnBuffer, "exit\n");
 	}
 
 	plGCFree(gc, placeholder);
-	plPuts(returnBuffer, "exit\n");
 	return returnBuffer;
 }
 
@@ -321,14 +330,16 @@ plfile_t* ciscoParseTable(ciscotable_t* table, plgc_t* gc){
 	plfile_t* returnBuffer = plOpen(NULL, "w+", gc);
 	ciscoint_t** array = table->interfaces->array;
 
-	for(int i = 0; i < table->interfaces; i++){
-		plfile_t* tempFile = ciscoParseInterface(array[i], gc);
-		switch(table->type){
-			case CISCO_INT_VLAN:
-				
-		}
-
-		plFCat(returnBuffer, tempFile, true);
+	switch(table->type){
+		case CISCO_INT_VLAN: ;
+			for(int i = 0; i < table->interfaces; i++){
+				char* placeholder = plGCAlloc(gc, 16 * sizeof(char));
+				plfile_t* tempFile = ciscoParseInterface(array[i], gc);
+				plFSeek(tempFile, plFTell(tempFile), SEEK_SET);
+				plFPuts(tempFile, cmdline)
+				plFCat(returnBuffer, tempFile, true);
+			}
+			break;
 	}
 
 
