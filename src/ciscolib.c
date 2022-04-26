@@ -24,6 +24,7 @@ struct ciscotable {
 	ciscoconst_t tableMode;
 	ciscoconst_t intMode;
 	char name[128];
+	uint16_t* 
 	plarray_t* interfaces;
 }
 
@@ -83,7 +84,7 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t tmode, ciscoconst
 	returnTable->type = type;
 	returnTable->tableMode = tmode;
 	returnTable->intMode = imode;
-	returnTable->interfaces = plGCAlloc(gc, plarray_t);
+	returnTable->interfaces = plGCAlloc(gc, sizeof(plarray_t));
 	returnTable->interfaces->size = 0;
 	returnTable->interfaces->array = plGCAlloc(gc, 2 * sizeof(ciscoint_t*));
 
@@ -203,21 +204,22 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 // Adds an interface to a table
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface, plgc_t* gc){
 	if(table->size > 1){
-		void* tempPtr = plGCRealloc(gc, table->interfaces, (table->size + 1) * sizeof(ciscoint_t*));
+		void* tempPtr = plGCRealloc(gc, table->interfaces->array, (table->interfaces->size + 1) * sizeof(ciscoint_t*));
 
 		if(!tempPtr){
 			return CISCO_ERROR_PL32LIB_GC;
 		}
 
-		table->interfaces = tempPtr;
+		table->interfaces->array = tempPtr;
 	}
 
-	table->interfaces[table->size] = interface;
+	ciscoint_t** array = table->interfaces->array
+	array[table->interfaces->size] = interface;
 
 	if(table->type == CISCO_TYPE_PORTCH)
 		interface->mode = CISCO_MODE_IN_PORTCH;
 
-	table->size++;
+	table->interfaces->size++;
 
 	return 0;
 }
@@ -228,7 +230,7 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 		return NULL;
 	}
 
-	return table->interfaces[index];
+	return ((ciscoint_t**)table->interfaces->array)[index];
 }
 
 plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
@@ -258,7 +260,7 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 	}
 
 	if(interface->number[0] == interface->number[1]){
-		sprintf(cmdline, "int range %s/%d\n", placeholder, interface->number[0])
+		sprintf(cmdline, "int %s/%d\n", placeholder, interface->number[0])
 	}else{
 		sprintf(cmdline, "int range %s/%d-%d\n", placeholder, interface->number[0], interface[1]);
 	}
@@ -279,6 +281,7 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 			break;
 		case CISCO_MODE_AUTO: ;
 			plPuts(returnBuffer, "switchport mode auto\n");
+			break;
 	}
 
 	if(strcmp(interface->ipAddr, "") != 0){
@@ -316,10 +319,21 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 
 plfile_t* ciscoParseTable(ciscotable_t* table, plgc_t* gc){
 	plfile_t* returnBuffer = plOpen(NULL, "w+", gc);
+	ciscoint_t** array = table->interfaces->array;
 
-	switch(table->type)
+	for(int i = 0; i < table->interfaces; i++){
+		plfile_t* tempFile = ciscoParseInterface(array[i], gc);
+		switch(table->type){
+			case CISCO_INT_VLAN:
+				
+		}
+
+		plFCat(returnBuffer, tempFile, true);
+	}
+
 
 	if(table->type == CISCO_INT_PORTCH){
+		char*
 		switch(table->mode){
 			case CISCO_MODE_ACTIVE: ;
 				strcpy(placeholder, "access");

@@ -13,10 +13,10 @@ typedef struct ciscoint ciscoint_t;
 typedef struct ciscotable ciscotable_t;
 typedef uint8_t ciscoconst_t;
 
-ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2);
-ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode);
+ciscoint_t* ciscoCreateInterface(ciscoconst_t type, int port1, int port2, plgc_t* gc);
+ciscotable_t* ciscoCreateTable(ciscoconst_t type, uint16_t number, ciscoconst_t tmode, ciscoconst_t imode, plgc_t* gc);
 
-int ciscoModifyInterface(ciscoint_t* interface, ciscoconst_t modType, ...);
+int ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t modType, ...);
 int ciscoModifyTable(ciscotable_t* table, ciscoconst_t modType, ...);
 
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface);
