@@ -423,10 +423,10 @@ void ciscoPrintInterface(ciscoint_t* interface, plgc_t* gc){
 
 void ciscoPrintTable(ciscotable_t* table, plgc_t* gc){
 	switch(table->type){
-		case CISCO_INT_VLAN:
+		case CISCO_INT_VLAN: ;
 			printf("Vlan %d\n\n", table->number);
 			break;
-		case CISCO_INT_PORTCH:
+		case CISCO_INT_PORTCH: ;
 			char* tempString = ciscoGenerateModeString(table->mode, gc);
 
 			printf("EtherChannel %d\n\n", table->number);
