@@ -239,12 +239,10 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 	return ((ciscoint_t**)table->interfaces->array)[index];
 }
 
-plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
-	plfile_t* returnBuffer = plFOpen(NULL, "w+", gc);
-	char* placeholder = plGCAlloc(gc, 16 * sizeof(char*));
-	char cmdline[8192] = "";
+char* ciscoGenerateInterfaceString(ciscoconst_t type){
+	
 
-	switch(interface->type){
+	switch(type){
 		case CISCO_INT_F0: ;
 			strcpy(placeholder, "f0");
 			break;
@@ -264,19 +262,21 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 			strcpy(placeholder, "s0/1");
 			break;
 	}
+}
+
+plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
+	plfile_t* returnBuffer = plFOpen(NULL, "w+", gc);
+	char* interfaceString = ciscoGenerateInterfaceString(interface->type);
+	char cmdline[8192] = "";
 
 	if(interface->number[0] == interface->number[1]){
-		sprintf(cmdline, "int %s/%d\n", placeholder, interface->number[0])
+		sprintf(cmdline, "int %s/%d\n\0", interfaceString, interface->number[0]);
 	}else{
-		sprintf(cmdline, "int range %s/%d-%d\n", placeholder, interface->number[0], interface[1]);
+		sprintf(cmdline, "int range %s/%d-%d\n\0", interfaceString, interface->number[0], interface[1]);
 	}
 
+	plGCFree(gc, interfaceString);
 	plPuts(returnBuffer, cmdline);
-	for(int i = 0; i < 16; i++)
-		placeholder[i] = 0;
-
-	for(int i = 0; i < 8192; i++)
-		cmdline[i] = 0;
 
 	switch(interface->mode){
 		case CISCO_MODE_ACCESS: ;
@@ -296,15 +296,13 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 		if(!isIpAddrV6){
 			plarray_t* octetSubmask = ciscoCidrToOctet(interface->subMask, gc);
 			uint8_t* array = octetSubmask->array;
-			sprintf(cmdline, "ip address %s %d.%d.%d.%d\n", interface->ipAddr, array[0], array[1], array[2], array[3]);
+			sprintf(cmdline, "ip address %s %d.%d.%d.%d\n\0", interface->ipAddr, array[0], array[1], array[2], array[3]);
 			plShellFreeArray(octetSubmask, false, gc);
 		}else{
-			sprintf(cmdline, "ipv6 address %s/%d\n", interface->ipAddr, interface->subMask);
+			sprintf(cmdline, "ipv6 address %s/%d\n\0", interface->ipAddr, interface->subMask);
 		}
 
 		plPuts(returnBuffer, cmdline);
-		for(int i = 0; i < 8192; i++)
-			cmdline[i] = 0;
 	}
 
 	interface->preExitBufmark = plFTell(returnBuffer);
@@ -314,37 +312,52 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 
 		if(!isIpAddrV6)
 			plPuts(returnBuffer, "ip default-gateway %s\n", interface->gateway);
-
-		plPuts(returnBuffer, cmdline);
-		for(int i = 0; i < 8192; i++)
-			cmdline[i] = 0;
 	}else{
 		plPuts(returnBuffer, "exit\n");
 	}
 
-	plGCFree(gc, placeholder);
 	return returnBuffer;
 }
 
 plfile_t* ciscoParseTable(ciscotable_t* table, plgc_t* gc){
 	plfile_t* returnBuffer = plOpen(NULL, "w+", gc);
 	ciscoint_t** array = table->interfaces->array;
+	char* placeholder[7] = "";
+	char* cmdline[192] = "";
 
 	switch(table->type){
+		plPuts(returnBuffer, "vlan")
 		case CISCO_INT_VLAN: ;
-			for(int i = 0; i < table->interfaces; i++){
-				char* placeholder = plGCAlloc(gc, 16 * sizeof(char));
+			for(int i = 0; i < table->interfaces->size; i++){
 				plfile_t* tempFile = ciscoParseInterface(array[i], gc);
+
+				switch(array[i]->mode){
+					case CISCO_MODE_TRUNK: ;
+						strcpy(placeholder, "trunk");
+						break;
+					default: ;
+						strcpy(placeholder, "access");
+						break;
+				}
+				sprintf(cmdline, "switchport %s vlan %d\n\0", placeholder, table->number);
+
 				plFSeek(tempFile, plFTell(tempFile), SEEK_SET);
-				plFPuts(tempFile, cmdline)
-				plFCat(returnBuffer, tempFile, true);
+				plFPuts(tempFile, cmdline);
+				plFCat(returnBuffer, tempFile, SEEK_END, SEEK_SET, true);
 			}
+			break;
+		case CISCO_INT_PORTCH: ;
+			for(int i = 0; i < table->interfaces->size; i++){
+				plfile_t* tempFile = ciscoParseInterface(array[i], gc);
+				plFCat(returnBuffer, tempFile, SEEK_END, SEEK_SET, true);
+			}
+
+			sprintf(cmdline, "int %s")
 			break;
 	}
 
 
 	if(table->type == CISCO_INT_PORTCH){
-		char*
 		switch(table->mode){
 			case CISCO_MODE_ACTIVE: ;
 				strcpy(placeholder, "access");
