@@ -1,0 +1,37 @@
+#!/bin/sh
+
+if [ "$CC" = "" ]; then
+	CC="cc"
+fi
+
+if [ "$AR" = "" ]; then
+	AR="ar"
+fi
+
+if [ "$CFLAGS" = "" ]; then
+	CFLAGS="-s -O2"
+fi
+
+if [ "$DESTDIR" = "" ]; then
+	DESTDIR="/usr"
+fi
+
+case $1 in
+	clean)
+		rm *.out *.a *.so core -f
+		set +v
+		;;
+
+	build)
+		$CC -c -Iinclude src/ciscolib.c $CFLAGS
+		$AR rc libcisco.a *.o
+		$CC -c -fPIC -Iinclude src/ciscolib.c $CFLAGS
+		$CC -shared *.o -o libcisco.so
+		$CC --static -Iinclude -L. src/gen-ciscoconf.c -o gen-ciscoconf.out -lcisco -lpl32 $CFLAGS
+		rm *.o
+		;;
+	install)
+		cp include/* $DESTDIR/include
+		mv libpl32.* $DESTDIR/lib
+		;;
+esac
