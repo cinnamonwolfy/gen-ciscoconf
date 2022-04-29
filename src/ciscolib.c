@@ -28,6 +28,7 @@ struct ciscotable {
 	plarray_t* interfaces;
 };
 
+// Converts a IPv4 CIDR subnet mask into an octet-based mask address
 plarray_t* ciscoCidrToOctet(uint8_t cidrMask, plgc_t* gc){
 	if(cidrMask > 32)
 		return NULL;
@@ -59,6 +60,111 @@ plarray_t* ciscoCidrToOctet(uint8_t cidrMask, plgc_t* gc){
 	return retArray;
 }
 
+// Converts an interface constant into a string
+char* ciscoGenerateIntString(ciscoconst_t type, plgc_t* gc){
+	char* returnString = plGCCalloc(gc, 5, sizeof(char));
+
+	switch(type){
+		case CISCO_INT_F0: ;
+			strcpy(returnString, "f0");
+			break;
+		case CISCO_INT_G0: ;
+			strcpy(returnString, "g0");
+			break;
+		case CISCO_INT_G00: ;
+			strcpy(returnString, "g0/0");
+			break;
+		case CISCO_INT_G01: ;
+			strcpy(returnString, "g0/1");
+			break;
+		case CISCO_INT_S00: ;
+			strcpy(returnString, "s0/0");
+			break;
+		case CISCO_INT_S01: ;
+			strcpy(returnString, "s0/1");
+			break;
+		default:
+			plGCFree(gc, returnString);
+			returnString = NULL;
+	}
+
+	return returnString;
+}
+
+// Converts a string into an interface constant
+ciscoconst_t ciscoStringToIntType(char* string){
+	if(strstr(string, "f0/"))
+		return CISCO_INT_F0;
+
+	if(strstr(string, "g0/0/"))
+		return CISCO_INT_G00;
+
+	if(strstr(string, "g0/1/"))
+		return CISCO_INT_G01;
+
+	if(strstr(string, "s0/0/"))
+		return CISCO_INT_S00;
+
+	if(strstr(string, "s0/1/"))
+		return CISCO_INT_S01;
+
+	return CISCO_ERROR_INVALID_VALUE;
+}
+
+// Converts a mode constant into a string
+char* ciscoGenerateModeString(ciscoconst_t mode, plgc_t* gc){
+	char* returnString = plGCCalloc(gc, 7, sizeof(char));
+
+	switch(mode){
+		case CISCO_MODE_ACCESS: ;
+			strcpy(returnString, "access");
+			break;
+		case CISCO_MODE_TRUNK: ;
+			strcpy(returnString, "trunk");
+			break;
+		case CISCO_MODE_AUTO: ;
+			strcpy(returnString, "auto");
+			break;
+		case CISCO_MODE_ACTIVE: ;
+			strcpy(returnString, "active");
+			break;
+		case CISCO_MODE_PASSIVE: ;
+			strcpy(returnString, "passive");
+			break;
+		case CISCO_MODE_DESIRABLE: ;
+			strcpy(returnString, "desirable");
+			break;
+		default:
+			plGCFree(gc, returnString);
+			returnString = NULL;
+	}
+
+	return returnString;
+}
+
+// Converts a string into a mode constant
+ciscoconst_t ciscoStringToMode(char* string){
+	if(strcmp(string, "access") == 0)
+		return CISCO_MODE_ACCESS;
+
+	if(strcmp(string, "trunk") == 0)
+		return CISCO_MODE_TRUNK;
+
+	if(strcmp(string, "auto") == 0)
+		return CISCO_MODE_AUTO;
+
+	if(strcmp(string, "active") == 0)
+		return CISCO_MODE_ACTIVE;
+
+	if(strcmp(string, "passive") == 0)
+		return CISCO_MODE_PASSIVE;
+
+	if(strcmp(string, "desirable") == 0)
+		return CISCO_MODE_DESIRABLE;
+
+	return CISCO_ERROR_INVALID_VALUE;
+}
+
 // Allocates memory for an interface structure and returns it
 ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint8_t port1, uint8_t port2, plgc_t* gc){
 	ciscoint_t* returnInt = plGCAlloc(gc, sizeof(ciscoint_t));
@@ -70,7 +176,7 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint8_t port1, uint8_t port2
 	returnInt->allowedVlans = plGCAlloc(gc, sizeof(plarray_t));
 	returnInt->allowedVlans->size = 0;
 	returnInt->allowedVlans->array = plGCAlloc(gc, 2 * sizeof(uint16_t));
-	returnInt->subMask = 0;
+	returnInt->subMask = 24;
 	for(int i = 0; i < 46; i++){
 		returnInt->ipAddr[i] = 0;
 		returnInt->gateway[i] = 0;
@@ -99,7 +205,7 @@ ciscotable_t* ciscoCreateTable(ciscoconst_t type, ciscoconst_t mode, uint16_t nu
 }
 
 // Modifies attributes in an interface
-uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t modType, ...){
+ciscoconst_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t modType, ...){
 	va_list values;
 	va_start(values, modType);
 	ciscoconst_t constant;
@@ -207,6 +313,11 @@ uint8_t ciscoModifyInterface(ciscoint_t* interface, plgc_t* gc, ciscoconst_t mod
 	return 0;
 }
 
+// Currently not implemented
+ciscoconst_t ciscoModifyTable(ciscotable_t* table, plgc_t* gc, ciscoconst_t modType, ...){
+	return CISCO_ERROR_INVALID_ACTION;
+}
+
 // Adds an interface to a table
 int ciscoAddInterface(ciscotable_t* table, ciscoint_t* interface, plgc_t* gc){
 	if(table->interfaces->size > 1){
@@ -237,59 +348,6 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 	}
 
 	return ((ciscoint_t**)table->interfaces->array)[index];
-}
-
-char* ciscoGenerateIntString(ciscoconst_t type, plgc_t* gc){
-	char* returnString = plGCCalloc(gc, 5, sizeof(char));
-
-	switch(type){
-		case CISCO_INT_F0: ;
-			strcpy(returnString, "f0");
-			break;
-		case CISCO_INT_G0: ;
-			strcpy(returnString, "g0");
-			break;
-		case CISCO_INT_G00: ;
-			strcpy(returnString, "g0/0");
-			break;
-		case CISCO_INT_G01: ;
-			strcpy(returnString, "g0/1");
-			break;
-		case CISCO_INT_S00: ;
-			strcpy(returnString, "s0/0");
-			break;
-		case CISCO_INT_S01: ;
-			strcpy(returnString, "s0/1");
-			break;
-	}
-
-	return returnString;
-}
-
-char* ciscoGenerateModeString(ciscoconst_t mode, plgc_t* gc){
-	char* returnString = plGCCalloc(gc, 7, sizeof(char));
-
-	switch(mode){
-		case CISCO_MODE_ACCESS: ;
-			strcpy(returnString, "access");
-			break;
-		case CISCO_MODE_TRUNK: ;
-			strcpy(returnString, "trunk");
-			break;
-		case CISCO_MODE_AUTO: ;
-			strcpy(returnString, "auto");
-			break;
-		case CISCO_MODE_ACTIVE: ;
-			strcpy(returnString, "active");
-			break;
-		case CISCO_MODE_PASSIVE: ;
-			strcpy(returnString, "passive");
-			break;
-		case CISCO_MODE_DESIRABLE: ;
-			strcpy(returnString, "desirable");
-			break;
-	}
-
 }
 
 plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
@@ -358,8 +416,10 @@ plfile_t* ciscoParseTable(ciscotable_t* table, plgc_t* gc){
 			sprintf(cmdline, "vlan %d\n\0", table->number);
 			plFPuts(cmdline, returnBuffer);
 
-			sprintf(cmdline, "name %s\n\0", table->name);
-			plFPuts(cmdline, returnBuffer);
+			if(strcmp(table->name, "") != 0){
+				sprintf(cmdline, "name %s\n\0", table->name);
+				plFPuts(cmdline, returnBuffer);
+			}
 			plFPuts("exit\n", returnBuffer);
 
 			for(int i = 0; i < table->interfaces->size; i++){
