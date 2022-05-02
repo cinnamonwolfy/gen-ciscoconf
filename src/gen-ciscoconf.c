@@ -4,21 +4,31 @@
 bool verbose = false;
 bool parseOnly = false;
 bool snippet = false;
+bool router = false;
+bool isCmdlineOpt = false;
 plarray_t* interfaces;
 plarray_t* tables;
 plfile_t* generatedConfig;
 char* outputPath;
 
 int showConfig(plarray_t* args, plgc_t* gc){
-	ciscoint_t** interfaceArr = interfaces->array;
-	ciscotable_t** tableArr = tables->array;
+	char** argv = args->array;
+	if(args->size > 1 && strcmp(argv[1], "gen-conf") == 0){
+		plFSeek(generatedConfig, 0, SEEK_SET);
+		char text[4096] = "";
+		plFGets(text, 4095, generatedConfig);
+		printf("%s\n", text);
+	}else{
+		ciscoint_t** interfaceArr = interfaces->array;
+		ciscotable_t** tableArr = tables->array;
 
-	for(int i = 0; i < interfaces->size; i++){
-		ciscoPrintInterface(interfaceArr[i], gc);
-	}
+		for(int i = 0; i < interfaces->size; i++){
+			ciscoPrintInterface(interfaceArr[i], gc);
+		}
 
-	for(int i = 0; i < tables->size; i++){
-		ciscoPrintTable(tableArr[i], gc);
+		for(int i = 0; i < tables->size; i++){
+			ciscoPrintTable(tableArr[i], gc);
+		}
 	}
 }
 
@@ -41,6 +51,8 @@ int generateConfig(plarray_t* args, plgc_t* gc){
 		for(int i = 0; i < tables->size; i++){
 			ciscoParseTable(tableArr[i], gc);
 		}
+	}else{
+		return 0;
 	}
 
 	if(outputPath)
@@ -48,7 +60,11 @@ int generateConfig(plarray_t* args, plgc_t* gc){
 
 }
 
-int commandParser(plarray_t* args, plgc_t* gc){
+int ciscoconfSettings(plarray_t* args, plgc_t* gc){
+	
+}
+
+int configCmdParser(plarray_t* args, plgc_t* gc){
 	char** argv = args->array;
 	char* junk;
 	if(strcmp(argv[0], "int") == 0 || strcmp(argv[0], "interface") == 0){
@@ -60,7 +76,7 @@ int commandParser(plarray_t* args, plgc_t* gc){
 		if(interfaces->size > 2){
 			void* tempPtr = plGCAlloc(gc, (interfaces->size + 1) * sizeof(ciscoint_t*));
 			if(!tempPtr){
-				printf("%s: Internal pl32lib error\n");
+				printf("%s: Internal pl32lib error\n", argv[0]);
 				return CISCO_ERROR_PL32LIB_GC;
 			}
 			interfaces->array = tempPtr;
@@ -77,7 +93,9 @@ int commandParser(plarray_t* args, plgc_t* gc){
 			return CISCO_ERROR_INVALID_VALUE;
 		}
 
-		intNums++;
+		while(strchr(intNums, '/') != NULL)
+			intNums++;
+
 		if(strchr(intNums, '-')){
 			char* tempChr = strchr(intNums, '-');
 			char* tempPtr = plGCCalloc(gc, (tempChr - intNums) + 1, sizeof(char));
@@ -96,7 +114,7 @@ int commandParser(plarray_t* args, plgc_t* gc){
 		if(args->size >= 3){
 			int retVar = ciscoModifyInterface(array[index], gc, CISCO_MODTYPE_MODE, ciscoStringToMode(argv[2]));
 			if(retVar == CISCO_ERROR_INVALID_VALUE){
-				printf("%s: Invalid value\n");
+				printf("%s: Invalid value\n", argv[0]);
 				return retVar;
 			}
 		}
@@ -122,7 +140,7 @@ int commandParser(plarray_t* args, plgc_t* gc){
 		if(args->size >= 6){
 			int retVar = ciscoModifyInterface(array[index], gc, CISCO_MODTYPE_DESC, argv[5]);
 			if(retVar == CISCO_ERROR_BUFFER_OVERFLOW){
-				printf("%s: Buffer overflow");
+				printf("%s: Buffer overflow", argv[0]);
 				return retVar;
 			}
 		}
@@ -130,14 +148,14 @@ int commandParser(plarray_t* args, plgc_t* gc){
 		interfaces->size++;
 	}else if(strcmp(argv[0], "vlan") == 0){
 		if(args->size < 2){
-			printf("%s: Not enough args\n");
+			printf("%s: Not enough args\n", argv[0]);
 			return CISCO_ERROR_INVALID_ACTION;
 		}
 
 		if(tables->size > 2){
 			void* tempPtr = plGCAlloc(gc, (tables->size + 1) * sizeof(ciscoint_t*));
 			if(!tempPtr){
-				printf("%s: Internal pl32lib error\n");
+				printf("%s: Internal pl32lib error\n", argv[0]);
 				return CISCO_ERROR_PL32LIB_GC;
 			}
 			tables->array = tempPtr;
@@ -186,20 +204,20 @@ int main(int argc, char* argv[]){
 			snippet = true;
 		}else if(strchr(argv[i], '-') == argv[i]){
 			printf("Invalid option: %s\n", argv[i]);
-			printf("Try '%s --help' for more information\n");
+			printf("Try '%s --help' for more information\n", argv[0]);
 			return 1;
 		}
 	}
 
 	plarray_t* commandBuf = plGCAlloc(mainGC, sizeof(plarray_t));
 	commandBuf->array = plGCAlloc(mainGC, 6 * sizeof(plfunctionptr_t));
-	((plfunctionptr_t*)commandBuf->array)[0].function = commandParser;
+	((plfunctionptr_t*)commandBuf->array)[0].function = configCmdParser;
 	((plfunctionptr_t*)commandBuf->array)[0].name = "int";
-	((plfunctionptr_t*)commandBuf->array)[1].function = commandParser;
+	((plfunctionptr_t*)commandBuf->array)[1].function = configCmdParser;
 	((plfunctionptr_t*)commandBuf->array)[1].name = "vlan";
-	((plfunctionptr_t*)commandBuf->array)[2].function = commandParser;
+	((plfunctionptr_t*)commandBuf->array)[2].function = configCmdParser;
 	((plfunctionptr_t*)commandBuf->array)[2].name = "ether";
-	((plfunctionptr_t*)commandBuf->array)[3].function = commandParser;
+	((plfunctionptr_t*)commandBuf->array)[3].function = configCmdParser;
 	((plfunctionptr_t*)commandBuf->array)[3].name = "system";
 	((plfunctionptr_t*)commandBuf->array)[4].function = generateConfig;
 	((plfunctionptr_t*)commandBuf->array)[4].name = "generate";

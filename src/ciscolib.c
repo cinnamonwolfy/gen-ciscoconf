@@ -479,6 +479,9 @@ void ciscoPrintInterface(ciscoint_t* interface, plgc_t* gc){
 		if(strcmp(interface->gateway, "") != 0)
 			printf("	Default Gateway: %s\n", interface->gateway);
 	}
+
+	if(strcmp(interface->description, "") != 0)
+		printf("	Description: %s\n", interface->description);
 }
 
 void ciscoPrintTable(ciscotable_t* table, plgc_t* gc){
