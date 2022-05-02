@@ -5,11 +5,12 @@ bool verbose = false;
 bool parseOnly = false;
 bool snippet = false;
 bool router = false;
-bool isCmdlineOpt = false;
+bool isTerminal = false;
+bool fromCmdline = false;
 plarray_t* interfaces;
 plarray_t* tables;
 plfile_t* generatedConfig;
-char* outputPath;
+char* outputPath = NULL;
 
 int showConfig(plarray_t* args, plgc_t* gc){
 	char** argv = args->array;
@@ -61,7 +62,42 @@ int generateConfig(plarray_t* args, plgc_t* gc){
 }
 
 int ciscoconfSettings(plarray_t* args, plgc_t* gc){
-	
+	char** argv = args->array;
+	char* placeholder = NULL;
+	if(args->size < 2)
+		return 1;
+
+	if(args->size > 2)
+		placeholder = argv[2];
+
+	if(fromCmdline)
+		return 1;
+
+	if(strcmp(argv[1], "verbose") == 0){
+		if(!verbose || strcmp(placeholder, "true")){
+			verbose = true;
+		}else{
+			verbose = false;
+		}
+	}else if(strcmp(argv[1], "parse-only") == 0){
+		if(!parseOnly || strcmp(placeholder, "true")){
+			parseOnly = true;
+		}else{
+			parseOnly = false;
+		}
+	}else if(strcmp(argv[1], "snippet") == 0){
+		if(!snippet || strcmp(placeholder, "true")){
+			snippet = true;
+		}else{
+			snippet = false;
+		}
+	}else if(strcmp(argv[1], "isterminal") == 0){
+		if(!isTerminal || strcmp(placeholder, "true")){
+			isTerminal = true;
+		}else{
+			isTerminal = false;
+		}
+	}
 }
 
 int configCmdParser(plarray_t* args, plgc_t* gc){
@@ -192,16 +228,33 @@ int main(int argc, char* argv[]){
 			printf("-v|--verbose		Enables verbosity (shows parser debug messages and generated configuration in a readable format).\n");
 			printf("-p|--parse		Only parses the configuration (verbosity must be enabled).\n");
 			printf("-s|--snippet		Generates the configuration without the header (\"enable\\nconfig t\\n\"). This option\n");
-			printf("			ignores any output files and only writes to either stdout or a terminal device.\n");
+			printf("			ignores any output files and only writes to either stdout or a terminal device.\n\n");
 			printf("-t|--terminal		Writes generated configuration to a terminal device. This is intended for 'flashing' the configuration\n");
 			printf("			to a Cisco device connected over serial, but it can be done to any terminal device.\n\n");
 			return 0;
 		}else if(strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0){
 			verbose = true;
+			fromCmdline = true;
 		}else if(strcmp(argv[i], "--parse") == 0 || strcmp(argv[i], "-p") == 0){
 			parseOnly = true;
+			fromCmdline = true;
 		}else if(strcmp(argv[i], "--snippet") == 0 || strcmp(argv[i], "-s") == 0){
 			snippet = true;
+			fromCmdline = true;
+		}else if(strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
+			if(i + 1 >= argc){
+				printf("%s requires an operand\n", argv[i]);
+				printf("Try '%s --help' for more information\n", argv[0]);
+				return 1;
+			}
+
+			outputPath = argv[i + 1];
+
+			if(strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
+				isTerminal = true;
+			}else{
+				isTerminal = false;
+			}
 		}else if(strchr(argv[i], '-') == argv[i]){
 			printf("Invalid option: %s\n", argv[i]);
 			printf("Try '%s --help' for more information\n", argv[0]);
@@ -209,22 +262,24 @@ int main(int argc, char* argv[]){
 		}
 	}
 
-	plarray_t* commandBuf = plGCAlloc(mainGC, sizeof(plarray_t));
-	commandBuf->array = plGCAlloc(mainGC, 6 * sizeof(plfunctionptr_t));
-	((plfunctionptr_t*)commandBuf->array)[0].function = configCmdParser;
-	((plfunctionptr_t*)commandBuf->array)[0].name = "int";
-	((plfunctionptr_t*)commandBuf->array)[1].function = configCmdParser;
-	((plfunctionptr_t*)commandBuf->array)[1].name = "vlan";
-	((plfunctionptr_t*)commandBuf->array)[2].function = configCmdParser;
-	((plfunctionptr_t*)commandBuf->array)[2].name = "ether";
-	((plfunctionptr_t*)commandBuf->array)[3].function = configCmdParser;
-	((plfunctionptr_t*)commandBuf->array)[3].name = "system";
-	((plfunctionptr_t*)commandBuf->array)[4].function = generateConfig;
-	((plfunctionptr_t*)commandBuf->array)[4].name = "generate";
-	((plfunctionptr_t*)commandBuf->array)[5].function = showConfig;
-	((plfunctionptr_t*)commandBuf->array)[5].name = "show";
-	commandBuf->size = 6;
+	plarray_t commandBuf;
+	commandBuf.array = plGCAlloc(mainGC, 7 * sizeof(plfunctionptr_t));
+	((plfunctionptr_t*)commandBuf.array)[0].function = configCmdParser;
+	((plfunctionptr_t*)commandBuf.array)[0].name = "int";
+	((plfunctionptr_t*)commandBuf.array)[1].function = configCmdParser;
+	((plfunctionptr_t*)commandBuf.array)[1].name = "vlan";
+	((plfunctionptr_t*)commandBuf.array)[2].function = configCmdParser;
+	((plfunctionptr_t*)commandBuf.array)[2].name = "ether";
+	((plfunctionptr_t*)commandBuf.array)[3].function = configCmdParser;
+	((plfunctionptr_t*)commandBuf.array)[3].name = "system";
+	((plfunctionptr_t*)commandBuf.array)[4].function = generateConfig;
+	((plfunctionptr_t*)commandBuf.array)[4].name = "generate";
+	((plfunctionptr_t*)commandBuf.array)[5].function = showConfig;
+	((plfunctionptr_t*)commandBuf.array)[5].name = "show";
+	((plfunctionptr_t*)commandBuf.array)[6].function = ciscoconfSettings;
+	((plfunctionptr_t*)commandBuf.array)[6].name = "cc-set";
+	commandBuf.size = 7;
 
-	plShellInteractive(NULL, true, commandBuf, mainGC);
+	plShellInteractive(NULL, true, &commandBuf, mainGC);
 	return 0;
 }
