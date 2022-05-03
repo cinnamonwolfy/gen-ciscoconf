@@ -1,3 +1,8 @@
+/************************************\
+* gen-ciscoconf, v0.56               *
+* (c)2022 pocketlinux32, Under GPLv3 *
+* Source file                        *
+\************************************/
 #include <ciscolib-const.h>
 #include <ciscolib.h>
 
@@ -214,7 +219,8 @@ int main(int argc, char* argv[]){
 	tables = plGCAlloc(mainGC, sizeof(plarray_t));
 	tables->array = plGCAlloc(mainGC, 2 * sizeof(ciscoint_t*));
 	generatedConfig = plFOpen(NULL, "w+", mainGC);
-	outputPath = NULL;
+	char* sourcePath = NULL;
+	plfile_t* sourceFile = NULL;
 
 	for(int i = 0; i < argc; i++){
 		if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0){
@@ -255,10 +261,14 @@ int main(int argc, char* argv[]){
 			}else{
 				isTerminal = false;
 			}
+
+			i++;
 		}else if(strchr(argv[i], '-') == argv[i]){
 			printf("Invalid option: %s\n", argv[i]);
 			printf("Try '%s --help' for more information\n", argv[0]);
 			return 1;
+		}else{
+			sourcePath = argv[i];
 		}
 	}
 
@@ -280,6 +290,18 @@ int main(int argc, char* argv[]){
 	((plfunctionptr_t*)commandBuf.array)[6].name = "cc-set";
 	commandBuf.size = 7;
 
-	plShellInteractive(NULL, true, &commandBuf, mainGC);
+	if(sourcePath)
+		sourceFile = plFOpen(sourcePath, "r", mainGC);
+
+	if(!sourceFile){
+		plShellInteractive(NULL, true, &commandBuf, mainGC);
+	}else{
+		printf("Source path has been specified. Using source file.\n");
+		char cmdline[4096];
+		while(plFGets(cmdline, 4096, )){
+			
+		}
+	}
+
 	return 0;
 }
