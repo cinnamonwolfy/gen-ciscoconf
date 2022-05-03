@@ -11,7 +11,6 @@ bool parseOnly = false;
 bool snippet = false;
 bool router = false;
 bool isTerminal = false;
-bool fromCmdline = false;
 plarray_t* interfaces;
 plarray_t* tables;
 plfile_t* generatedConfig;
@@ -64,45 +63,6 @@ int generateConfig(plarray_t* args, plgc_t* gc){
 	if(outputPath)
 		plFPToFile(outputPath, generatedConfig);
 
-}
-
-int ciscoconfSettings(plarray_t* args, plgc_t* gc){
-	char** argv = args->array;
-	char* placeholder = NULL;
-	if(args->size < 2)
-		return 1;
-
-	if(args->size > 2)
-		placeholder = argv[2];
-
-	if(fromCmdline)
-		return 1;
-
-	if(strcmp(argv[1], "verbose") == 0){
-		if(!verbose || strcmp(placeholder, "true")){
-			verbose = true;
-		}else{
-			verbose = false;
-		}
-	}else if(strcmp(argv[1], "parse-only") == 0){
-		if(!parseOnly || strcmp(placeholder, "true")){
-			parseOnly = true;
-		}else{
-			parseOnly = false;
-		}
-	}else if(strcmp(argv[1], "snippet") == 0){
-		if(!snippet || strcmp(placeholder, "true")){
-			snippet = true;
-		}else{
-			snippet = false;
-		}
-	}else if(strcmp(argv[1], "isterminal") == 0){
-		if(!isTerminal || strcmp(placeholder, "true")){
-			isTerminal = true;
-		}else{
-			isTerminal = false;
-		}
-	}
 }
 
 int configCmdParser(plarray_t* args, plgc_t* gc){
@@ -240,13 +200,10 @@ int main(int argc, char* argv[]){
 			return 0;
 		}else if(strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0){
 			verbose = true;
-			fromCmdline = true;
 		}else if(strcmp(argv[i], "--parse") == 0 || strcmp(argv[i], "-p") == 0){
 			parseOnly = true;
-			fromCmdline = true;
 		}else if(strcmp(argv[i], "--snippet") == 0 || strcmp(argv[i], "-s") == 0){
 			snippet = true;
-			fromCmdline = true;
 		}else if(strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
 			if(i + 1 >= argc){
 				printf("%s requires an operand\n", argv[i]);
@@ -273,7 +230,10 @@ int main(int argc, char* argv[]){
 	}
 
 	plarray_t commandBuf;
-	commandBuf.array = plGCAlloc(mainGC, 7 * sizeof(plfunctionptr_t));
+	plarray_t variableBuf;
+	commandBuf.array = plGCAlloc(mainGC, 6 * sizeof(plfunctionptr_t));
+	variableBuf.array = plGCAlloc(mainGC, 6 * sizeof(plvariable_t));
+
 	((plfunctionptr_t*)commandBuf.array)[0].function = configCmdParser;
 	((plfunctionptr_t*)commandBuf.array)[0].name = "int";
 	((plfunctionptr_t*)commandBuf.array)[1].function = configCmdParser;
@@ -286,9 +246,26 @@ int main(int argc, char* argv[]){
 	((plfunctionptr_t*)commandBuf.array)[4].name = "generate";
 	((plfunctionptr_t*)commandBuf.array)[5].function = showConfig;
 	((plfunctionptr_t*)commandBuf.array)[5].name = "show";
-	((plfunctionptr_t*)commandBuf.array)[6].function = ciscoconfSettings;
-	((plfunctionptr_t*)commandBuf.array)[6].name = "cc-set";
-	commandBuf.size = 7;
+	commandBuf.size = 6;
+
+	((plvariable_t*)variableBuf.array)[0].varptr = &verbose;
+	((plvariable_t*)variableBuf.array)[0].type = PLSHVAR_BOOL;
+	((plvariable_t*)variableBuf.array)[0].name = "verbose";
+	((plvariable_t*)variableBuf.array)[1].varptr = &parseOnly;
+	((plvariable_t*)variableBuf.array)[1].type = PLSHVAR_BOOL;
+	((plvariable_t*)variableBuf.array)[1].name = "parseOnly";
+	((plvariable_t*)variableBuf.array)[2].varptr = &snippet;
+	((plvariable_t*)variableBuf.array)[2].type = PLSHVAR_BOOL;
+	((plvariable_t*)variableBuf.array)[2].name = "snippet";
+	((plvariable_t*)variableBuf.array)[3].varptr = &router;
+	((plvariable_t*)variableBuf.array)[3].type = PLSHVAR_BOOL;
+	((plvariable_t*)variableBuf.array)[3].name = "router";
+	((plvariable_t*)variableBuf.array)[4].varptr = &isTerminal;
+	((plvariable_t*)variableBuf.array)[4].type = PLSHVAR_BOOL;
+	((plvariable_t*)variableBuf.array)[4].name = "isTerminal";
+	((plvariable_t*)variableBuf.array)[1].varptr = &outputPath;
+	((plvariable_t*)variableBuf.array)[1].type = PLSHVAR_STRING;
+	((plvariable_t*)variableBuf.array)[1].name = "outputPath";
 
 	if(sourcePath)
 		sourceFile = plFOpen(sourcePath, "r", mainGC);
