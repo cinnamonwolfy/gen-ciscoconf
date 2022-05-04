@@ -11,7 +11,7 @@ struct ciscoint {
 	ciscoconst_t type;
 	ciscoconst_t mode;
 	uint8_t ports[2];
-	char description[4096];
+	char description[256];
 	plarray_t* allowedVlans;
 	char ipAddr[46];
 	uint8_t subMask;
@@ -83,6 +83,15 @@ char* ciscoGenerateIntString(ciscoconst_t type, plgc_t* gc){
 		case CISCO_INT_S01: ;
 			strcpy(returnString, "s0/1");
 			break;
+		case CISCO_INT_F1: ;
+			strcpy(returnString, "f1");
+			break;
+		case CISCO_INT_G1: ;
+			strcpy(returnString, "g1");
+			break;
+		case CISCO_INT_G11: ;
+			strcpy(returnString, "g1/1");
+			break;
 		default:
 			plGCFree(gc, returnString);
 			returnString = NULL;
@@ -107,6 +116,18 @@ ciscoconst_t ciscoStringToIntType(char* string){
 
 	if(strstr(string, "s0/1/"))
 		return CISCO_INT_S01;
+
+	if(strstr(string, "f1/"))
+		return CISCO_INT_F1;
+
+	if(strstr(string, "g1/"))
+		return CISCO_INT_G1;
+
+	if(strstr(string, "g1/0/"))
+		return CISCO_INT_G10;
+
+	if(strstr(string, "g1/1/"))
+		return CISCO_INT_G11;
 
 	return CISCO_ERROR_INVALID_VALUE;
 }
@@ -353,7 +374,7 @@ ciscoint_t* ciscoGetInterface(ciscotable_t* table, int index){
 plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 	plfile_t* returnBuffer = plFOpen(NULL, "w+", gc);
 	char* pointerString = ciscoGenerateIntString(interface->type, gc);
-	char cmdline[8192] = "";
+	char cmdline[2048] = "";
 
 	if(interface->ports[0] == interface->ports[1]){
 		sprintf(cmdline, "int %s/%d\0", pointerString, interface->ports[0]);

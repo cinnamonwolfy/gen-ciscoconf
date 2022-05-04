@@ -9,8 +9,12 @@
 #define CISCO_INT_G01 3
 #define CISCO_INT_S00 4
 #define CISCO_INT_S01 5
-#define CISCO_INT_VLAN 6
-#define CISCO_INT_PORTCH 7
+#define CISCO_INT_F1 6
+#define CISCO_INT_G1 7
+#define CISCO_INT_G10 8
+#define CISCO_INT_G11 9
+#define CISCO_INT_VLAN 10
+#define CISCO_INT_PORTCH 11
 
 #define CISCO_MODE_ACCESS 16
 #define CISCO_MODE_TRUNK 17

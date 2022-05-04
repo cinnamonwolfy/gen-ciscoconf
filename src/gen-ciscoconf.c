@@ -251,32 +251,39 @@ int main(int argc, char* argv[]){
 	((plvariable_t*)variableBuf.array)[0].varptr = &verbose;
 	((plvariable_t*)variableBuf.array)[0].type = PLSHVAR_BOOL;
 	((plvariable_t*)variableBuf.array)[0].name = "verbose";
+	((plvariable_t*)variableBuf.array)[0].isMemAlloc = false;
 	((plvariable_t*)variableBuf.array)[1].varptr = &parseOnly;
 	((plvariable_t*)variableBuf.array)[1].type = PLSHVAR_BOOL;
 	((plvariable_t*)variableBuf.array)[1].name = "parseOnly";
+	((plvariable_t*)variableBuf.array)[1].isMemAlloc = false;
 	((plvariable_t*)variableBuf.array)[2].varptr = &snippet;
 	((plvariable_t*)variableBuf.array)[2].type = PLSHVAR_BOOL;
 	((plvariable_t*)variableBuf.array)[2].name = "snippet";
+	((plvariable_t*)variableBuf.array)[2].isMemAlloc = false;
 	((plvariable_t*)variableBuf.array)[3].varptr = &router;
 	((plvariable_t*)variableBuf.array)[3].type = PLSHVAR_BOOL;
 	((plvariable_t*)variableBuf.array)[3].name = "router";
+	((plvariable_t*)variableBuf.array)[3].isMemAlloc = false;
 	((plvariable_t*)variableBuf.array)[4].varptr = &isTerminal;
 	((plvariable_t*)variableBuf.array)[4].type = PLSHVAR_BOOL;
 	((plvariable_t*)variableBuf.array)[4].name = "isTerminal";
-	((plvariable_t*)variableBuf.array)[1].varptr = &outputPath;
-	((plvariable_t*)variableBuf.array)[1].type = PLSHVAR_STRING;
-	((plvariable_t*)variableBuf.array)[1].name = "outputPath";
+	((plvariable_t*)variableBuf.array)[4].isMemAlloc = false;
+	((plvariable_t*)variableBuf.array)[5].varptr = &outputPath;
+	((plvariable_t*)variableBuf.array)[5].type = PLSHVAR_STRING;
+	((plvariable_t*)variableBuf.array)[5].name = "outputPath";
+	((plvariable_t*)variableBuf.array)[5].isMemAlloc = false;
+	variableBuf.size = 6;
 
 	if(sourcePath)
 		sourceFile = plFOpen(sourcePath, "r", mainGC);
 
 	if(!sourceFile){
-		plShellInteractive(NULL, true, &commandBuf, mainGC);
+		plShellInteractive(NULL, true, &variableBuf, &commandBuf, mainGC);
 	}else{
 		printf("Source path has been specified. Using source file.\n");
 		char cmdline[4096];
-		while(plFGets(cmdline, 4096, )){
-			
+		while(plFGets(cmdline, 4096, sourceFile) != NULL){
+			plShell(cmdline, &variableBuf, &commandBuf, &mainGC);
 		}
 	}
 
