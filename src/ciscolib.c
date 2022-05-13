@@ -203,7 +203,7 @@ ciscoint_t* ciscoCreateInterface(ciscoconst_t type, uint8_t port1, uint8_t port2
 		returnInt->gateway[i] = 0;
 	}
 
-	for(int i = 0; i < 4096; i++)
+	for(int i = 0; i < 255; i++)
 		returnInt->description[i] = 0;
 
 	return returnInt;
@@ -376,7 +376,7 @@ plfile_t* ciscoParseInterface(ciscoint_t* interface, plgc_t* gc){
 	char* pointerString = ciscoGenerateIntString(interface->type, gc);
 	char cmdline[2048] = "";
 
-	if(interface->ports[0] == interface->ports[1]){
+	if(interface->ports[0] == interface->ports[1] || interface->ports[1] == 0){
 		sprintf(cmdline, "int %s/%d\0", pointerString, interface->ports[0]);
 	}else{
 		sprintf(cmdline, "int range %s/%d-%d\0", pointerString, interface->ports[0], interface->ports[1]);

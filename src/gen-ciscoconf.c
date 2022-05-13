@@ -21,8 +21,8 @@ int showConfig(plarray_t* args, plgc_t* gc){
 	if(args->size > 1 && strcmp(argv[1], "gen-conf") == 0){
 		plFSeek(generatedConfig, 0, SEEK_SET);
 		char text[4096] = "";
-		plFGets(text, 4095, generatedConfig);
-		printf("%s\n", text);
+		while(plFGets(text, 4095, generatedConfig) != NULL)
+			printf("%s", text);
 	}else{
 		ciscoint_t** interfaceArr = interfaces->array;
 		ciscotable_t** tableArr = tables->array;
@@ -41,6 +41,10 @@ int generateConfig(plarray_t* args, plgc_t* gc){
 	ciscoint_t** interfaceArr = interfaces->array;
 	ciscotable_t** tableArr = tables->array;
 
+	plarray_t generatedSnippets;
+	generatedSnippets.array = plGCAlloc(gc, 2 * sizeof(plfile_t*));
+	generatedSnippets.size = 0;
+
 	if(verbose){
 		showConfig(NULL, gc);
 	}
@@ -50,15 +54,41 @@ int generateConfig(plarray_t* args, plgc_t* gc){
 			plFPuts("enable\nconfig t\n", generatedConfig);
 
 		for(int i = 0; i < tables->size; i++){
-			ciscoParseTable(tableArr[i], gc);
+			((plfile_t**)generatedSnippets.array)[i] = ciscoParseTable(tableArr[i], gc);
+			if(generatedSnippets.size + 1 >= 2){
+				void* tempPtr = plGCRealloc(gc, generatedSnippets.array, (generatedSnippets.size + 2) * sizeof(plfile_t*));
+				if(!tempPtr){
+					printf("generateConfig: Internal pl32lib error\n");
+					return CISCO_ERROR_PL32LIB_GC;
+				}
+
+				generatedSnippets.array = tempPtr;
+			}
+			generatedSnippets.size++;
 		}
 
-		for(int i = 0; i < tables->size; i++){
-			ciscoParseTable(tableArr[i], gc);
+		for(int i = 0; i < interfaces->size; i++){
+			((plfile_t**)generatedSnippets.array)[tables->size + i] = ciscoParseInterface(interfaceArr[i], gc);
+			if(generatedSnippets.size + 1 >= 2){
+				void* tempPtr = plGCRealloc(gc, generatedSnippets.array, generatedSnippets.size + 2);
+				if(!tempPtr){
+					printf("generateConfig: Internal pl32lib error\n");
+					return CISCO_ERROR_PL32LIB_GC;
+				}
+
+				generatedSnippets.array = tempPtr;
+			}
+			generatedSnippets.size++;
 		}
 	}else{
 		return 0;
 	}
+
+	for(int i = 0; i < generatedSnippets.size; i++){
+		plFCat(generatedConfig, ((plfile_t**)generatedSnippets.array)[i], SEEK_END, SEEK_SET, true);
+	}
+
+	plGCFree(gc, generatedSnippets.array);
 
 	if(outputPath)
 		plFPToFile(outputPath, generatedConfig);
@@ -97,17 +127,18 @@ int configCmdParser(plarray_t* args, plgc_t* gc){
 		while(strchr(intNums, '/') != NULL)
 			intNums++;
 
-		if(strchr(intNums, '-')){
+		nums[0] = strtol(intNums, &junk, 10);
+
+		if(strchr(intNums, '-') != NULL){
 			char* tempChr = strchr(intNums, '-');
 			char* tempPtr = plGCCalloc(gc, (tempChr - intNums) + 1, sizeof(char));
 			memcpy(tempPtr, intNums, tempChr - intNums);
 			nums[1] = strtol(tempChr + 1, &junk, 10);
 			intNums = tempPtr;
 		}else{
-			nums[1] = 0;
+			nums[1] = nums[0];
 		}
 
-		nums[0] = strtol(intNums, &junk, 10);
 		plGCFree(gc, intNums);
 
 		array[index] = ciscoCreateInterface(type, nums[0], nums[1], gc);
@@ -147,7 +178,7 @@ int configCmdParser(plarray_t* args, plgc_t* gc){
 		}
 
 		interfaces->size++;
-	}else if(strcmp(argv[0], "vlan") == 0){
+	}else if(strcmp(argv[0], "vlan") == 0 || strcmp(argv[0], "ether") == 0){
 		if(args->size < 2){
 			printf("%s: Not enough args\n", argv[0]);
 			return CISCO_ERROR_INVALID_ACTION;
@@ -166,7 +197,11 @@ int configCmdParser(plarray_t* args, plgc_t* gc){
 		ciscotable_t** array = tables->array;
 		size_t index = tables->size;
 
-		array[index] = ciscoCreateTable(CISCO_INT_VLAN, CISCO_MODE_AUTO, number, gc);
+		if(strcmp(argv[0], "vlan")){
+			array[index] = ciscoCreateTable(CISCO_INT_VLAN, CISCO_MODE_AUTO, number, gc);
+		}else{
+			array[index] = ciscoCreateTable(CISCO_INT_PORTCH, CISCO_MODE_AUTO, number, gc);
+		}
 
 		tables->size++;
 	}
@@ -182,50 +217,52 @@ int main(int argc, char* argv[]){
 	char* sourcePath = NULL;
 	plfile_t* sourceFile = NULL;
 
-	for(int i = 0; i < argc; i++){
-		if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0){
-			printf("Cisco Configurator v0.56\n");
-			printf("(c)2022 pocketlinux32, Under GPLv3\n\n");
-			printf("Usage: %s { --help | --out OUTPUT | --parse | --verbose | --snippet | --terminal TERM_DEV } [ SOURCE ]\n", argv[0]);
-			printf("Generates a configuration script for a Cisco device. If no arguments given, it runs in interactive\n");
-			printf("mode and outputs generated configuration to stdout.\n\n");
-			printf("-h|--help		Shows this help.\n");
-			printf("-o|--out		Writes generated configuration to a file.\n");
-			printf("-v|--verbose		Enables verbosity (shows parser debug messages and generated configuration in a readable format).\n");
-			printf("-p|--parse		Only parses the configuration (verbosity must be enabled).\n");
-			printf("-s|--snippet		Generates the configuration without the header (\"enable\\nconfig t\\n\"). This option\n");
-			printf("			ignores any output files and only writes to either stdout or a terminal device.\n\n");
-			printf("-t|--terminal		Writes generated configuration to a terminal device. This is intended for 'flashing' the configuration\n");
-			printf("			to a Cisco device connected over serial, but it can be done to any terminal device.\n\n");
-			return 0;
-		}else if(strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0){
-			verbose = true;
-		}else if(strcmp(argv[i], "--parse") == 0 || strcmp(argv[i], "-p") == 0){
-			parseOnly = true;
-		}else if(strcmp(argv[i], "--snippet") == 0 || strcmp(argv[i], "-s") == 0){
-			snippet = true;
-		}else if(strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
-			if(i + 1 >= argc){
-				printf("%s requires an operand\n", argv[i]);
+	if(argc > 1){
+		for(int i = 1; i < argc; i++){
+			if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0){
+				printf("Cisco Configurator v0.56\n");
+				printf("(c)2022 pocketlinux32, Under GPLv3\n\n");
+				printf("Usage: %s { --help | --out OUTPUT | --parse | --verbose | --snippet | --terminal TERM_DEV } [ SOURCE ]\n", argv[0]);
+				printf("Generates a configuration script for a Cisco device. If no arguments given, it runs in interactive\n");
+				printf("mode and outputs generated configuration to stdout.\n\n");
+				printf("-h|--help		Shows this help.\n");
+				printf("-o|--out		Writes generated configuration to a file.\n");
+				printf("-v|--verbose		Enables verbosity (shows parser debug messages and generated configuration in a readable format).\n");
+				printf("-p|--parse		Only parses the configuration (verbosity must be enabled).\n");
+				printf("-s|--snippet		Generates the configuration without the header (\"enable\\nconfig t\\n\"). This option\n");
+				printf("			ignores any output files and only writes to either stdout or a terminal device.\n\n");
+				printf("-t|--terminal		Writes generated configuration to a terminal device. This is intended for 'flashing' the configuration\n");
+				printf("			to a Cisco device connected over serial, but it can be done to any terminal device.\n\n");
+				return 0;
+			}else if(strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0){
+				verbose = true;
+			}else if(strcmp(argv[i], "--parse") == 0 || strcmp(argv[i], "-p") == 0){
+				parseOnly = true;
+			}else if(strcmp(argv[i], "--snippet") == 0 || strcmp(argv[i], "-s") == 0){
+				snippet = true;
+			}else if(strcmp(argv[i], "--out") == 0 || strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
+				if(i + 1 >= argc){
+					printf("%s requires an operand\n", argv[i]);
+					printf("Try '%s --help' for more information\n", argv[0]);
+					return 1;
+				}
+
+				outputPath = argv[i + 1];
+
+				if(strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
+					isTerminal = true;
+				}else{
+					isTerminal = false;
+				}
+
+				i++;
+			}else if(strchr(argv[i], '-') == argv[i]){
+				printf("Invalid option: %s\n", argv[i]);
 				printf("Try '%s --help' for more information\n", argv[0]);
 				return 1;
-			}
-
-			outputPath = argv[i + 1];
-
-			if(strcmp(argv[i], "--terminal") == 0 || strcmp(argv[i], "-t") == 0){
-				isTerminal = true;
 			}else{
-				isTerminal = false;
+				sourcePath = argv[i];
 			}
-
-			i++;
-		}else if(strchr(argv[i], '-') == argv[i]){
-			printf("Invalid option: %s\n", argv[i]);
-			printf("Try '%s --help' for more information\n", argv[0]);
-			return 1;
-		}else{
-			sourcePath = argv[i];
 		}
 	}
 
